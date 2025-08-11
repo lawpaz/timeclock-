@@ -256,7 +256,7 @@
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const pad2 = n => String(n).padStart(2,'0');
-  const hmNoLead = d => { const h=d.getHours(); return (h===0?0:h).toString() + ':' + pad2(d.getMinutes()); }; // 9:00 style
+  const hmNoLead = d => `${d.getHours()}:${pad2(d.getMinutes())}`; // 9:00 style
   const fmt2 = n => (Math.round(n*100)/100).toFixed(2);
   const fmtHM = mins => `${Math.floor(mins/60)}h ${pad2(Math.round(mins%60))}m`;
   const ymd = d => d.toISOString().slice(0,10);
@@ -384,14 +384,11 @@
   });
 
   async function updatePeriodNavButtons(){
-    // Next disabled if offset >= 0 (current)
-    btnNextPeriod.disabled = state.periodOffset >= 0;
-    // Prev disabled if period start <= earliest period that has data
+    btnNextPeriod.disabled = state.periodOffset >= 0; // can't go past current
     const first = await getEarliestPunch();
     if(!first){ btnPrevPeriod.disabled = true; return; }
-    const firstPeriodEnd = lastSaturdayEnd(first);
-    const firstPeriodStart = startFromEndSat(firstPeriodEnd);
-    btnPrevPeriod.disabled = state.period.start <= firstPeriodStart;
+    const firstStart = startFromEndSat(lastSaturdayEnd(first));
+    btnPrevPeriod.disabled = state.period.start <= firstStart;
   }
   btnPrevPeriod.addEventListener('click', async ()=>{
     state.periodOffset -= 1; state.period = periodByOffset(state.periodOffset);
@@ -527,7 +524,7 @@
       addTotalRow('Period Total', periodMins/60);
     }
 
-    // Editing (admin only) — use inline inputs (no prompts)
+    // Editing (admin only)
     if(state.isAdmin){
       // Delete day
       entryRows.querySelectorAll('[data-del]').forEach(btn=>{
@@ -541,15 +538,15 @@
       entryRows.querySelectorAll('[data-kind="date"]').forEach(cell=>{
         cell.addEventListener('click', async ()=>{
           if(cell.querySelector('input')) return;
-          const key=cell.getAttribute('data-key'); const [uid,day]=key.split('|');
-          const d=new Date(day+'T00:00:00');
+          const key=cell.getAttribute('data-key');
+          const d=new Date(key.split('|')[1]+'T00:00:00');
           const inp=document.createElement('input'); inp.type='date'; inp.value=ymd(d); inp.style.height='32px';
           cell.innerHTML=''; cell.appendChild(inp); inp.focus();
           inp.addEventListener('change', async ()=>{
             const row=cell.closest('tr'); const docs=JSON.parse(row.dataset.docs); const newYMD=inp.value;
             for(const p of docs){ const cur=new Date(p.ts); const at=new Date(newYMD+'T'+pad2(cur.getHours())+':'+pad2(cur.getMinutes())+':00'); await updateDoc(doc(db,'punches', p.id), { ts: Timestamp.fromDate(at) }); }
           });
-          inp.addEventListener('blur', ()=> cell.textContent=mdy(new Date(inp.value||day)));
+          inp.addEventListener('blur', ()=> cell.textContent=mdy(new Date(inp.value||ymd(d))));
         });
       });
       // Time editors
@@ -557,14 +554,14 @@
         entryRows.querySelectorAll(`[data-kind="${kind}"]`).forEach(cell=>{
           cell.addEventListener('click', async ()=>{
             if(cell.querySelector('input')) return;
-            const key=cell.getAttribute('data-key'); const row=cell.closest('tr'); const docs=JSON.parse(row.dataset.docs);
+            const row=cell.closest('tr'); const docs=JSON.parse(row.dataset.docs);
             const current=cell.textContent.trim()||'09:00';
             const inp=document.createElement('input'); inp.type='time'; inp.step='60'; inp.value=current.length===4?('0'+current):current; inp.style.height='32px';
             cell.innerHTML=''; cell.appendChild(inp); inp.focus();
             inp.addEventListener('change', async ()=>{
               const hhmm=inp.value;
-              // target first IN or last OUT for that day
-              let target=null; if(kind==='in'){ let min=1e15; for(const d of docs){ if(d.type==='in' && d.ts<min){ min=d.ts; target=d; } } }
+              let target=null;
+              if(kind==='in'){ let min=1e15; for(const d of docs){ if(d.type==='in' && d.ts<min){ min=d.ts; target=d; } } }
               else { let max=0; for(const d of docs){ if(d.type==='out' && d.ts>max){ max=d.ts; target=d; } } }
               if(!target){ alert('No '+(kind==='in'?'IN':'OUT')+' punch to edit.'); return; }
               const base = new Date(target.ts); const at=new Date(ymd(base)+'T'+hhmm+':00');
@@ -659,7 +656,7 @@
     });
   }
 
-  // ===== Reports (daily rows + week/period totals) =====
+  // ===== Reports =====
   function computeDailyRowsFromPunches(start,end, snaps, usersSnap){
     const nameByUid = new Map(); usersSnap.forEach(u=>nameByUid.set(u.id,{full: fullNameOf(u.data())||'', username:u.data().username||''}));
 
@@ -676,9 +673,9 @@
 
     const rows = Array.from(perDay.values()).map(v=>{
       const nm=nameByUid.get(v.uid)?.full || nameByUid.get(v.uid)?.username || v.uid.slice(0,6);
-      return { uid:v.uid, name:nm, date:v.date, dateLabel: mdy(v.date), in:v.firstIn?hmNoLead(v.firstIn):'', out:v.lastOut?hmNoLead(v.lastOut):'', mins:v.mins };
+      return { uid:v.uid, name:nm, date:v.date, in:v.firstIn?hmNoLead(v.firstIn):'', out:v.lastOut?hmNoLead(v.lastOut):'', mins:v.mins };
     }).sort((a,b)=> a.name.localeCompare(b.name) || a.date - b.date);
-    return rows;
+    return rows.map(r => ({...r, dateLabel: mdy(r.date)}));
   }
 
   async function generateAndSaveCurrentBiweekly(){
@@ -707,7 +704,6 @@
     function flushPeriod(name){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Period total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(periodMins/60)}</strong></td>`; reportRows.appendChild(tr); periodMins=0; }
     rows.forEach(r=>{
       const d=new Date(r.date);
-      // Compute Monday bucket
       const dow=d.getDay(); const weekMon=new Date(d); weekMon.setDate(d.getDate() - (dow===0?6:dow-1)); weekMon.setHours(0,0,0,0);
       if(r.name!==curName){ if(curName){ flushWeek(curName); flushPeriod(curName); const sep=document.createElement('tr'); sep.innerHTML=`<td colspan="5" class="hint">—</td>`; reportRows.appendChild(sep); }
         curName=r.name; weekStart=+weekMon; weekMins=0; periodMins=0;
@@ -731,7 +727,6 @@
     // VIEW: swap in immediately
     reportList.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click', async ()=>{
       const id=b.getAttribute('data-view'); const s=await getDoc(doc(db,'reports', id)); if(s.exists()) await renderReportDoc(s);
-      // Scroll to report table for instant feedback
       document.getElementById('admin-reports').scrollIntoView({behavior:'smooth', block:'start'});
     }));
     // DELETE
@@ -739,27 +734,29 @@
   }
   btnLoadLatest.addEventListener('click', loadLatestReport);
 
-  // Printable report window
-  btnPrintReport.addEventListener('click', ()=>{
-    // Collect what's currently shown
-    const lines=[['Name','Date','Clock In','Clock Out','Daily Hours']];
+  // Printable report window — SAFE (no inline <script> in the string)
+  btnPrintReport.addEventListener('click', () => {
+    const rows = [];
     reportRows.querySelectorAll('tr').forEach(tr=>{
       const t=[...tr.querySelectorAll('td')].map(x=>x.textContent.trim());
       if(!t.length) return;
-      if(t[1]==='Week total' || t[1]==='Period total'){ lines.push([t[0],t[1],'','',t[4]]); }
-      else if(t.length===5){ lines.push(t); }
+      if(t[1]==='Week total' || t[1]==='Period total'){ rows.push([t[0],t[1],'','',t[4]]); }
+      else if(t.length===5){ rows.push(t); }
     });
+    const title = document.getElementById('reportRange').textContent.replace('Period:', 'Report:');
     const html = `
-      <html><head><title>Report</title>
-      <style>body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:20px;color:#111} table{border-collapse:collapse;width:100%} th,td{border:1px solid #ccc;padding:6px 8px;text-align:left} th{background:#f3f4f6}</style>
-      </head><body>
-      <h2>${$('#reportRange').textContent.replace('Period:','Report:')}</h2>
-      <table><thead><tr><th>Name</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Daily Hours</th></tr></thead><tbody>
-      ${lines.slice(1).map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('')}
-      </tbody></table>
-      <script>window.onload=()=>window.print()<\/script>
+      <html><head><meta charset="utf-8"><title>${title}</title>
+      <style>body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:20px;color:#111}
+      h2{margin:0 0 12px} table{border-collapse:collapse;width:100%}
+      th,td{border:1px solid #ccc;padding:6px 8px;text-align:left} th{background:#f3f4f6}</style></head>
+      <body>
+        <h2>${title}</h2>
+        <table><thead><tr><th>Name</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Daily Hours</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('')}</tbody>
       </body></html>`;
-    const w=window.open('', '_blank'); w.document.write(html); w.document.close();
+    const w = window.open('', '_blank');
+    w.document.open(); w.document.write(html); w.document.close(); w.focus();
+    setTimeout(() => { try { w.print(); } catch(_) {} }, 300);
   });
 
   // Export CSV (report view)
