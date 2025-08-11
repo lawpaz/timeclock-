@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TimeClock — Geofenced (20 m)</title>
+<title>TimeClock — Desktop Only</title>
 <style>
   :root {
     --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb;
@@ -44,14 +44,12 @@
   .tab { background:#0b1220; border:1px solid var(--border); border-radius:999px; padding:6px 12px; cursor:pointer; color:#cbd5e1; }
   .tab.active { background:#1a2338; color:#fff; }
   .hidden { display:none !important; }
-  .error { color:#fecaca; }
-  .success { color:#bbf7d0; }
   .badge { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2a364a; color:#9aa6bf; }
 </style>
 </head>
 <body>
 <header>
-  <h1>⏱️ TimeClock — 20 m Geofence</h1>
+  <h1>⏱️ TimeClock — Desktop Only</h1>
   <div class="row">
     <span id="now" class="pill">—</span>
     <button id="btnExport" class="btn-ghost hidden">Export CSV</button>
@@ -59,13 +57,14 @@
   </div>
 </header>
 
+<!-- AUTH -->
 <div id="auth" class="container">
   <section class="card" style="grid-column:1/-1;">
     <div class="tabs">
       <button class="tab active" data-tab="signin">Sign In</button>
       <button class="tab" data-tab="signup">Sign Up</button>
       <div class="grow"></div>
-      <span class="badge">Office: 420 E South Temple St, SLC UT 84111</span>
+      <span class="badge">Home-office friendly (no geofence)</span>
     </div>
 
     <div id="signin" class="row" style="gap:12px;">
@@ -92,11 +91,19 @@
 
     <div id="signup" class="row hidden" style="gap:12px;">
       <div class="grow">
-        <label for="suUsername">Username (letters/numbers, 3–20)</label>
-        <input id="suUsername" placeholder="e.g., jdoe" />
+        <label for="suFirst">First Name</label>
+        <input id="suFirst" placeholder="e.g., Maria" />
       </div>
       <div class="grow">
-        <label for="suEmail">Work Email (Outlook is fine)</label>
+        <label for="suLast">Last Name</label>
+        <input id="suLast" placeholder="e.g., Lopez" />
+      </div>
+      <div class="grow">
+        <label for="suUsername">Username (3–20 letters/numbers/_)</label>
+        <input id="suUsername" placeholder="e.g., mlopez" />
+      </div>
+      <div class="grow">
+        <label for="suEmail">Work Email</label>
         <input id="suEmail" placeholder="name@company.com" />
       </div>
       <div class="grow">
@@ -113,6 +120,7 @@
   </section>
 </div>
 
+<!-- APP -->
 <div id="app" class="container hidden">
   <!-- Left: Clock & status -->
   <section class="card">
@@ -123,7 +131,7 @@
           <span id="roleBadge" class="badge hidden">Admin</span>
           <span id="activeBadge" class="badge hidden">Inactive</span>
         </div>
-        <div class="hint" id="clockHint">You must be within 20 meters of the office to punch.</div>
+        <div class="hint" id="clockHint">Clocking is allowed from approved desktop/laptop only.</div>
       </div>
     </div>
 
@@ -176,12 +184,10 @@
       <thead>
         <tr>
           <th>#</th>
+          <th>Name</th>
           <th>User</th>
           <th>Type</th>
           <th>When</th>
-          <th>Lat</th>
-          <th>Lng</th>
-          <th>Acc (m)</th>
           <th class="right">Actions</th>
         </tr>
       </thead>
@@ -194,50 +200,42 @@
     <div class="tabs">
       <button class="tab active" data-admin-tab="staff">Staff</button>
       <button class="tab" data-admin-tab="punches">Punches</button>
-      <button class="tab" data-admin-tab="settings">Settings</button>
+      <button class="tab" data-admin-tab="reports">Reports</button>
     </div>
 
     <!-- Staff -->
     <div id="admin-staff">
       <table>
-        <thead><tr><th>User</th><th>Email</th><th>Status</th><th class="right">Actions</th></tr></thead>
+        <thead>
+          <tr><th>First</th><th>Last</th><th>Username</th><th>Email</th><th>Status</th><th class="right">Actions</th></tr>
+        </thead>
         <tbody id="staffRows"></tbody>
       </table>
     </div>
 
-    <!-- Punches (admin quick tools) -->
+    <!-- Punches (same table; use day filter above) -->
     <div id="admin-punches" class="hidden">
-      <div class="row" style="gap:10px; margin-bottom:10px;">
-        <input id="filterUser" placeholder="Filter by username/email (optional)" />
-        <input type="date" id="filterDate" />
-        <button id="btnReloadPunches" class="btn-ghost">Reload</button>
-      </div>
-      <div class="hint">Tip: click a timestamp cell to edit it, then press Enter to save.</div>
+      <div class="hint">Use the main "Entries" table and date picker above. Click a timestamp cell to edit, Enter to save.</div>
     </div>
 
-    <!-- Settings -->
-    <div id="admin-settings" class="hidden">
-      <div class="row" style="gap:12px; margin-bottom:10px;">
-        <div class="grow">
-          <label>Office coordinates (set at the office)</label>
-          <div class="row">
-            <input id="lat" placeholder="Latitude" />
-            <input id="lng" placeholder="Longitude" />
-            <input id="radius" placeholder="Radius meters (max 20)" value="20" />
-            <button id="btnUseHere" class="btn-primary">Use my current location</button>
-            <button id="btnSaveSettings" class="btn-go">Save</button>
-          </div>
-          <div class="hint">Radius is locked to ≤ 20 m. You can re-set this only as admin.</div>
-        </div>
+    <!-- Reports -->
+    <div id="admin-reports" class="hidden">
+      <div class="row" style="gap:10px; margin-bottom:10px;">
+        <button id="btnPrev2Weeks" class="btn-primary">Load Previous 2 Weeks</button>
+        <button id="btnExportTotals" class="btn-ghost">Export CSV</button>
       </div>
-      <div id="setMsg" class="hint"></div>
+      <table>
+        <thead><tr><th>Name</th><th>Username</th><th class="right">Total Hours</th></tr></thead>
+        <tbody id="reportRows"></tbody>
+      </table>
+      <div class="hint">This table shows totals by employee for the last two completed weeks (Mon–Sun). For automatic emails, see the Cloud Function step below.</div>
     </div>
   </section>
 </div>
 
-<div class="footer">Data stored in Firebase. Geofence enforced client-side with location + accuracy checks. </div>
+<div class="footer">Desktop-only. Data stored in Firebase. </div>
 
-<!-- Firebase (v10 modular) -->
+<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import {
@@ -250,9 +248,11 @@
     Timestamp
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  // ===========================
-  // CONFIG (yours)
-  // ===========================
+  // ========= Feature flags =========
+  const GEOFENCE_ENABLED = false;          // Off (home office allowed)
+  const ENFORCE_DESKTOP_ONLY = true;       // Block phones/tablets
+
+  // ========= Your Firebase config =========
   const firebaseConfig = {
     apiKey: "AIzaSyCAi1zcDsdprr78A5RdYiOhz6Xn8Oiz54s",
     authDomain: "timeclock-15ac7.firebaseapp.com",
@@ -263,23 +263,17 @@
     measurementId: "G-RTW4RDNZHC"
   };
 
-  // Hard-limit radius to 20 m
-  const MAX_RADIUS = 20;
-
-  // ===========================
-  // INIT
-  // ===========================
+  // ========= Init =========
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // ===========================
-  // HELPERS
-  // ===========================
+  // ========= Helpers =========
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const pad2 = n => String(n).padStart(2,'0');
   const fmtHM = mins => `${Math.floor(mins/60)}h ${pad2(Math.round(mins%60))}m`;
+  const fmtHours = mins => (Math.round((mins/60)*100)/100).toFixed(2); // 2 decimals
   const toLocalInput = ts => {
     if (!ts) return '';
     const d = ts instanceof Date ? ts : new Date(ts);
@@ -292,16 +286,30 @@
     const d = new Date(v);
     return Number.isNaN(d.getTime()) ? null : d;
   };
-  const distanceMeters = (lat1,lng1,lat2,lng2) => {
-    const R = 6371000;
-    const toRad = x => x*Math.PI/180;
-    const dLat = toRad(lat2-lat1);
-    const dLng = toRad(lng2-lng1);
-    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
-    return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  };
   const todayISO = () => new Date().toISOString().slice(0,10);
   const show = (el, visible=true) => el.classList.toggle('hidden', !visible);
+  const fullNameOf = u => [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
+
+  function isBlockedMobileOrTablet() {
+    const ua = (navigator.userAgent || '').toLowerCase();
+    const isMobileUA = /android|iphone|ipad|ipod|iemobile|blackberry|opera mini/.test(ua);
+    const touch = (navigator.maxTouchPoints || 0) > 0;
+    const smallScreen = Math.min(window.screen.width, window.screen.height) < 800;
+    const platform = (navigator.platform || '').toLowerCase();
+    const iPadDesktopMode = platform.includes('mac') && touch;
+    return ENFORCE_DESKTOP_ONLY && (isMobileUA || iPadDesktopMode || (touch && smallScreen));
+  }
+
+  if (isBlockedMobileOrTablet()) {
+    document.body.innerHTML = `
+      <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0f172a; color:#e5e7eb; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;">
+        <div style="max-width:560px; background:#111827; border:1px solid #1f2937; border-radius:12px; padding:20px;">
+          <h2 style="margin:0 0 8px;">Desktop Required</h2>
+          <p style="margin:8px 0 0; color:#cbd5e1;">Please use a desktop or laptop computer to access the time clock.</p>
+        </div>
+      </div>`;
+    throw new Error('Blocked on mobile/tablet');
+  }
 
   // Clock
   const nowEl = $('#now');
@@ -324,22 +332,14 @@
       btn.classList.add('active');
       show($('#admin-staff'), btn.dataset.adminTab === 'staff');
       show($('#admin-punches'), btn.dataset.adminTab === 'punches');
-      show($('#admin-settings'), btn.dataset.adminTab === 'settings');
+      show($('#admin-reports'), btn.dataset.adminTab === 'reports');
     });
   });
-
-  // Global state
-  let state = {
-    user: null,
-    isAdmin: false,
-    me: null,            // users/<uid> doc
-    office: null,        // settings/office doc
-    currentStatus: 'out' // 'in' or 'out'
-  };
 
   // UI elements
   const siEmail = $('#siEmail'), siPass = $('#siPass'), siMsg = $('#siMsg');
   const suUsername = $('#suUsername'), suEmail = $('#suEmail'), suPass = $('#suPass'), suMsg = $('#suMsg');
+  const suFirst = $('#suFirst'), suLast = $('#suLast');
   const btnSignIn = $('#btnSignIn'), btnReset = $('#btnReset'), btnSignUp = $('#btnSignUp');
   const btnSignOut = $('#btnSignOut'), btnExport = $('#btnExport');
   const welcome = $('#welcome'), roleBadge = $('#roleBadge'), activeBadge = $('#activeBadge');
@@ -348,20 +348,20 @@
   const dayInput = $('#day'), rowsEl = $('#rows'), tzEl = $('#activeTz');
   const adminSection = $('#admin'), staffRows = $('#staffRows');
   const btnAddManual = $('#btnAddManual'), btnDeleteDay = $('#btnDeleteDay');
-  const btnUseHere = $('#btnUseHere'), btnSaveSettings = $('#btnSaveSettings');
-  const latEl = $('#lat'), lngEl = $('#lng'), radiusEl = $('#radius'), setMsg = $('#setMsg');
-  const btnReloadPunches = $('#btnReloadPunches'), filterUser = $('#filterUser'), filterDate = $('#filterDate');
+  const reportRows = $('#reportRows'), btnPrev2Weeks = $('#btnPrev2Weeks'), btnExportTotals = $('#btnExportTotals');
 
   tzEl.textContent = 'Timezone: ' + Intl.DateTimeFormat().resolvedOptions().timeZone;
   dayInput.value = todayISO();
 
-  // ================
-  // AUTH
-  // ================
+  // State
+  let state = { user:null, isAdmin:false, me:null, currentStatus:'out', usersCache: new Map() };
+
+  // ======== AUTH ========
+  function validUsername(u) { return /^[a-z0-9_]{3,20}$/.test(u || ''); }
+
   async function resolveLoginIdentifier(idOrUsername) {
     if (!idOrUsername) throw new Error('Enter email or username.');
     if (idOrUsername.includes('@')) return idOrUsername.trim().toLowerCase();
-    // else treat as username -> lookup usernames/<uname>
     const uname = idOrUsername.trim().toLowerCase();
     const snap = await getDoc(doc(db,'usernames', uname));
     if (!snap.exists()) throw new Error('Username not found.');
@@ -376,9 +376,7 @@
       const email = await resolveLoginIdentifier(siEmail.value);
       await signInWithEmailAndPassword(auth, email, siPass.value);
       siMsg.textContent = '';
-    } catch (e) {
-      siMsg.textContent = 'Sign-in failed: ' + e.message;
-    }
+    } catch (e) { siMsg.textContent = 'Sign-in failed: ' + e.message; }
   });
 
   btnReset.addEventListener('click', async () => {
@@ -387,48 +385,39 @@
       const email = await resolveLoginIdentifier(siEmail.value);
       await sendPasswordResetEmail(auth, email);
       siMsg.textContent = 'Reset email sent if the account exists.';
-    } catch (e) {
-      siMsg.textContent = 'Password reset failed: ' + e.message;
-    }
+    } catch (e) { siMsg.textContent = 'Password reset failed: ' + e.message; }
   });
-
-  function validUsername(u) { return /^[a-z0-9_]{3,20}$/.test(u || ''); }
 
   btnSignUp.addEventListener('click', async () => {
     suMsg.textContent = '';
     try {
+      const firstName = suFirst.value.trim(); const lastName = suLast.value.trim();
+      if (!firstName || !lastName) throw new Error('Enter first and last name.');
       const username = suUsername.value.trim().toLowerCase();
-      if (!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/underscore.');
+      if (!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/_');
       const email = suEmail.value.trim().toLowerCase();
       const pass = suPass.value;
       if (pass.length < 8) throw new Error('Password must be at least 8 characters.');
 
-      // Check username availability BEFORE creating the auth user
       const exists = await getDoc(doc(db,'usernames', username));
       if (exists.exists()) throw new Error('Username is taken. Choose another.');
 
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(cred.user, { displayName: username });
 
-      // Write user profile (starts inactive)
       await setDoc(doc(db,'users', cred.user.uid), {
-        username, email, role: 'staff', active: false, createdAt: serverTimestamp()
+        username, email, firstName, lastName, role: 'staff', active: false, createdAt: serverTimestamp()
       });
 
-      // Reserve username to this uid
       await setDoc(doc(db,'usernames', username), { uid: cred.user.uid, email });
 
       suMsg.textContent = 'Account created. An admin must activate your account before you can clock in.';
-    } catch (e) {
-      suMsg.textContent = 'Sign-up failed: ' + e.message;
-    }
+    } catch (e) { suMsg.textContent = 'Sign-up failed: ' + e.message; }
   });
 
   btnSignOut.addEventListener('click', async () => { await signOut(auth); });
 
-  // ================
-  // LOAD USER / ADMIN
-  // ================
+  // ======== LOAD USER ========
   async function checkAdmin(uid) {
     const snap = await getDoc(doc(db,'admins', uid));
     return snap.exists();
@@ -440,15 +429,9 @@
     if (!snap.exists()) {
       await setDoc(ref, { username: user.displayName || '', email: user.email, role: 'staff', active: false, createdAt: serverTimestamp() });
     }
-    return (await getDoc(ref)).data();
-  }
-
-  async function loadOffice() {
-    const snap = await getDoc(doc(db,'settings','office'));
-    if (!snap.exists()) return null;
-    const s = snap.data();
-    s.radiusMeters = Math.min(Number(s.radiusMeters||0), MAX_RADIUS);
-    return s;
+    const data = (await getDoc(ref)).data();
+    state.usersCache.set(user.uid, data);
+    return data;
   }
 
   function renderAuth(stateful) {
@@ -464,15 +447,14 @@
 
     state.isAdmin = await checkAdmin(user.uid);
     state.me = await ensureUserDoc(user);
-    state.office = await loadOffice();
 
-    welcome.textContent = `Welcome, ${state.me?.username || user.email}`;
+    welcome.textContent = `Welcome, ${fullNameOf(state.me) || state.me?.username || user.email}`;
     show(roleBadge, state.isAdmin);
     show(activeBadge, !state.me?.active);
-    $('#clockHint').textContent = 'You must be within 20 meters of the office to punch.';
+    $('#clockHint').textContent = 'Clocking is allowed from approved desktop/laptop only.';
     renderAuth(true);
 
-    // Staff gates
+    // Admin UI
     show(btnAddManual, state.isAdmin);
     show(btnDeleteDay, state.isAdmin);
     show(adminSection, state.isAdmin);
@@ -482,50 +464,10 @@
     btnOut.disabled = true;
 
     subscribeToday();
-    if (state.isAdmin) {
-      loadStaff();
-      if (state.office) {
-        latEl.value = state.office.lat ?? '';
-        lngEl.value = state.office.lng ?? '';
-        radiusEl.value = Math.min(Number(state.office.radiusMeters||20), MAX_RADIUS);
-      }
-    }
+    if (state.isAdmin) { loadStaff(); }
   });
 
-  // ================
-  // GEOFENCE
-  // ================
-  function getPositionOnce() {
-    geoMsg.textContent = 'Requesting location…';
-    return new Promise((resolve, reject) => {
-      if (!('geolocation' in navigator)) return reject(new Error('Geolocation not available in this browser.'));
-      navigator.geolocation.getCurrentPosition(
-        pos => resolve(pos),
-        err => reject(err),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
-    });
-  }
-
-  async function guardGeofence() {
-    if (!state.office || !Number(state.office.lat) || !Number(state.office.lng)) {
-      throw new Error('Office location is not set. Ask an admin to set it in Settings.');
-    }
-    const pos = await getPositionOnce();
-    const { latitude, longitude, accuracy } = pos.coords;
-    if (accuracy > 30) {
-      throw new Error(`Location accuracy is ${Math.round(accuracy)} m. Move closer to a window and try again (≤ 30 m required).`);
-    }
-    const d = distanceMeters(latitude, longitude, Number(state.office.lat), Number(state.office.lng));
-    if (d > MAX_RADIUS) {
-      throw new Error(`You are ${Math.round(d)} m from the office — outside the 20 m limit.`);
-    }
-    return { lat: latitude, lng: longitude, accuracy };
-  }
-
-  // =================
-  // CLOCK ACTIONS
-  // =================
+  // ======== CLOCK ========
   async function lastPunch(uid) {
     const q1 = query(collection(db,'punches'), where('uid','==',uid), orderBy('ts','desc'), limit(1));
     const s = await getDocs(q1);
@@ -537,8 +479,8 @@
     if (!last || last.type === 'out') {
       state.currentStatus = 'out';
       statusEl.textContent = 'Not clocked in';
-      show(btnIn, true); btnIn.disabled = !(state.isAdmin || state.me?.active);
-      show(btnOut, true); btnOut.disabled = true;
+      btnIn.disabled = !(state.isAdmin || state.me?.active);
+      btnOut.disabled = true;
       sinceEl.textContent = '—';
     } else {
       state.currentStatus = 'in';
@@ -552,25 +494,26 @@
   async function doPunch(type) {
     geoMsg.textContent = '';
     try {
-      const pos = await guardGeofence();
+      // No geofence now; still record device info
+      const me = state.me || {};
       await addDoc(collection(db,'punches'), {
         uid: state.user.uid,
-        username: state.me?.username || state.user.email,
+        username: me.username || state.user.email,
+        fullName: fullNameOf(me) || '',
         type, ts: serverTimestamp(),
-        lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy,
-        source: 'geofence'
+        ua: navigator.userAgent || '',
+        screen: { w: window.screen.width, h: window.screen.height },
+        source: 'desktop'
       });
       geoMsg.textContent = 'Recorded ✓';
       await recomputeStatus();
-    } catch (e) {
-      geoMsg.textContent = 'Error: ' + e.message;
-    }
+    } catch (e) { geoMsg.textContent = 'Error: ' + e.message; }
   }
 
   btnIn.addEventListener('click', () => doPunch('in'));
   btnOut.addEventListener('click', () => doPunch('out'));
 
-  // Subscribe to today’s rows (for current user, admins see all)
+  // ======== TODAY VIEW ========
   let unsubToday = null;
   function subscribeToday() {
     if (unsubToday) unsubToday();
@@ -578,40 +521,36 @@
     const start = new Date(theDay + 'T00:00:00');
     const end = new Date(theDay + 'T23:59:59');
 
-    const qBase = collection(db,'punches');
-    const q1 = query(qBase, orderBy('ts','asc'));
+    const q1 = query(collection(db,'punches'), orderBy('ts','asc'));
     unsubToday = onSnapshot(q1, snap => {
       const rows = [];
       let idx = 1, minsToday = 0;
+      rowsEl.innerHTML = '';
+      const all = [];
       snap.forEach(d => {
         const data = d.data();
-        if (data.ts?.toDate) {
-          const when = data.ts.toDate();
-          if (when < start || when > end) return;
-          if (!state.isAdmin && data.uid !== state.user.uid) return;
-          rows.push({ id:d.id, ...data });
-        }
+        if (!data.ts?.toDate) return;
+        const when = data.ts.toDate();
+        if (when < start || when > end) return;
+        if (!state.isAdmin && data.uid !== state.user.uid) return;
+        all.push({ id:d.id, ...data });
       });
-      rowsEl.innerHTML = '';
-      rows.sort((a,b) => a.ts.toMillis() - b.ts.toMillis()).forEach(r => {
+
+      all.sort((a,b) => a.ts.toMillis() - b.ts.toMillis()).forEach(r => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${idx++}</td>
-          <td>${r.username || r.uid.slice(0,6)}</td>
+          <td>${r.fullName || ''}</td>
+          <td>${r.username || r.uid?.slice(0,6) || ''}</td>
           <td>${r.type}</td>
           <td data-edit="ts" data-id="${r.id}">${toLocalInput(r.ts?.toDate?.())}</td>
-          <td>${r.lat ? r.lat.toFixed(6) : ''}</td>
-          <td>${r.lng ? r.lng.toFixed(6) : ''}</td>
-          <td>${r.accuracy ? Math.round(r.accuracy) : ''}</td>
-          <td class="right">
-            ${state.isAdmin ? `<button data-del="${r.id}" class="btn-danger" style="height:32px;">Delete</button>` : ''}
-          </td>
+          <td class="right">${state.isAdmin ? `<button data-del="${r.id}" class="btn-danger" style="height:32px;">Delete</button>` : ''}</td>
         `;
         rowsEl.appendChild(tr);
       });
 
-      // Simple today total (pairs of in/out)
-      const onlyMine = rows.filter(r => r.uid === state.user.uid);
+      // Mine only for "today total"
+      const onlyMine = all.filter(r => r.uid === state.user.uid);
       let lastIn = null;
       onlyMine.forEach(r => {
         if (r.type === 'in') lastIn = r.ts?.toDate?.() || null;
@@ -622,7 +561,6 @@
       });
       todayTotalEl.textContent = fmtHM(minsToday);
 
-      // Row handlers for admin edit/delete
       if (state.isAdmin) {
         rowsEl.querySelectorAll('[data-del]').forEach(btn => {
           btn.addEventListener('click', async () => {
@@ -644,19 +582,16 @@
           });
         });
       }
-
       recomputeStatus();
     });
   }
-
   dayInput.addEventListener('change', subscribeToday);
 
-  // Admin: add manual pair (start+end) for selected day
+  // ======== ADMIN: MANUAL / DELETE DAY ========
   btnAddManual.addEventListener('click', async () => {
     if (!state.isAdmin) return;
     const who = prompt('Enter username or email for manual entry:');
     if (!who) return;
-    // Resolve user by username or email
     let user = null;
     if (who.includes('@')) {
       const qs = await getDocs(query(collection(db,'users'), where('email','==', who.toLowerCase())));
@@ -668,8 +603,8 @@
     if (!user) { alert('User not found.'); return; }
 
     const d = dayInput.value || todayISO();
-    const startStr = prompt(`Start time for ${user.username || user.email} on ${d} (24h HH:MM)`, '09:00');
-    const endStr   = prompt(`End time for ${user.username || user.email} on ${d} (24h HH:MM)`, '17:00');
+    const startStr = prompt(`Start time for ${fullNameOf(user) || user.username || user.email} on ${d} (24h HH:MM)`, '09:00');
+    const endStr   = prompt(`End time for ${fullNameOf(user) || user.username || user.email} on ${d} (24h HH:MM)`, '17:00');
     if (!startStr || !endStr) return;
 
     const mkDate = (hhmm) => {
@@ -680,37 +615,36 @@
     const start = mkDate(startStr), end = mkDate(endStr);
     if (!start || !end || end <= start) { alert('Times invalid or end before start.'); return; }
 
-    await addDoc(collection(db,'punches'), { uid:user.id, username:user.username||user.email, type:'in',  ts: Timestamp.fromDate(start), source:'manual' });
-    await addDoc(collection(db,'punches'), { uid:user.id, username:user.username||user.email, type:'out', ts: Timestamp.fromDate(end),   source:'manual' });
+    await addDoc(collection(db,'punches'), { uid:user.id, username:user.username||user.email, fullName: fullNameOf(user)||'', type:'in',  ts: Timestamp.fromDate(start), source:'manual' });
+    await addDoc(collection(db,'punches'), { uid:user.id, username:user.username||user.email, fullName: fullNameOf(user)||'', type:'out', ts: Timestamp.fromDate(end),   source:'manual' });
     alert('Manual pair added.');
   });
 
-  // Admin: delete all punches for the selected day
   btnDeleteDay.addEventListener('click', async () => {
     if (!state.isAdmin) return;
-    if (!confirm('Delete ALL punches on this day (visible list)? This cannot be undone.')) return;
+    if (!confirm('Delete ALL punches shown for this day?')) return;
     const delBtns = rowsEl.querySelectorAll('[data-del]');
-    for (const b of delBtns) {
-      await deleteDoc(doc(db,'punches', b.getAttribute('data-del')));
-    }
+    for (const b of delBtns) { await deleteDoc(doc(db,'punches', b.getAttribute('data-del'))); }
   });
 
-  // Admin: staff list
+  // ======== ADMIN: STAFF ========
   function loadStaff() {
     onSnapshot(collection(db,'users'), snap => {
       staffRows.innerHTML = '';
       snap.forEach(docu => {
         const u = { id: docu.id, ...docu.data() };
+        state.usersCache.set(u.id, u);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${u.username || '(no username)'}</td>
-          <td>${u.email}</td>
+          <td>${u.firstName || ''}</td>
+          <td>${u.lastName || ''}</td>
+          <td>${u.username || ''}</td>
+          <td>${u.email || ''}</td>
           <td>${u.active ? 'Active' : 'Inactive'}</td>
           <td class="right">
             <button data-act="${u.id}" class="btn-ghost" style="height:32px;">${u.active ? 'Disable' : 'Activate'}</button>
             <button data-deluser="${u.id}" class="btn-danger" style="height:32px;">Delete</button>
-          </td>
-        `;
+          </td>`;
         staffRows.appendChild(tr);
       });
 
@@ -727,30 +661,83 @@
       staffRows.querySelectorAll('[data-deluser]').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-deluser');
-          if (!confirm('Delete this user profile? This does not delete their Auth login.')) return;
+          if (!confirm('Delete this user profile? (Auth login remains)')) return;
           await deleteDoc(doc(db,'users', id));
         });
       });
     });
   }
 
-  // Admin: punches quick reload (filters)
-  btnReloadPunches.addEventListener('click', subscribeToday);
-  filterUser.addEventListener('input', subscribeToday);
-  filterDate.addEventListener('change', () => {
-    if (filterDate.value) dayInput.value = filterDate.value;
-    subscribeToday();
-  });
+  // ======== REPORTS (previous 2 weeks) ========
+  function getPreviousTwoWeeksRange() {
+    // Last two FULL weeks, Monday 00:00 to Sunday 23:59:59
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun, 1=Mon
+    const offsetToMonday = (day === 0 ? -6 : 1 - day); // this week's Monday
+    const thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetToMonday);
+    // End of last week (yesterday Sunday end)
+    const end = new Date(thisMonday.getTime() - 1); // Sunday 23:59:59 of previous week
+    const start = new Date(thisMonday.getTime() - 14*24*60*60*1000); // two Mondays back
+    start.setHours(0,0,0,0);
+    end.setHours(23,59,59,999);
+    return {start, end};
+  }
 
-  // Export CSV (visible rows)
+  async function loadTotalsPreviousTwoWeeks() {
+    const {start, end} = getPreviousTwoWeeksRange();
+    // load all punches ordered by ts (client filters to range)
+    const q1 = query(collection(db,'punches'), orderBy('ts','asc'));
+    const snap = await getDocs(q1);
+    const byUser = new Map(); // uid -> { username, fullName, mins }
+    const byUserLastIn = new Map();
+
+    snap.forEach(d => {
+      const data = d.data();
+      if (!data.ts?.toDate) return;
+      const when = data.ts.toDate();
+      if (when < start || when > end) return;
+
+      const uid = data.uid;
+      if (!byUser.has(uid)) byUser.set(uid, { username: data.username||'', fullName: data.fullName||'', mins:0 });
+      if (data.type === 'in') {
+        byUserLastIn.set(uid, when);
+      } else if (data.type === 'out') {
+        const lastIn = byUserLastIn.get(uid);
+        if (lastIn) {
+          byUser.get(uid).mins += (when - lastIn)/60000;
+          byUserLastIn.delete(uid);
+        }
+      }
+    });
+
+    // Render
+    reportRows.innerHTML = '';
+    const rows = Array.from(byUser.entries()).map(([uid, v]) => ({
+      name: v.fullName || v.username || uid.slice(0,6),
+      username: v.username || '',
+      hours: fmtHours(v.mins)
+    })).sort((a,b) => a.name.localeCompare(b.name));
+
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.name}</td><td>${r.username}</td><td class="right">${r.hours}</td>`;
+      reportRows.appendChild(tr);
+    });
+
+    return rows; // for CSV export
+  }
+
+  btnPrev2Weeks.addEventListener('click', loadTotalsPreviousTwoWeeks);
+
   btnExport.addEventListener('click', () => {
-    const headers = ['#','username','type','when','lat','lng','accuracy'];
+    // Export visible Entries table
+    const headers = ['#','name','username','type','when'];
     const lines = [headers.join(',')];
     let i=1;
     rowsEl.querySelectorAll('tr').forEach(tr => {
       const tds = tr.querySelectorAll('td');
-      if (tds.length < 7) return;
-      const row = [i++, tds[1].textContent, tds[2].textContent, tds[3].textContent, tds[4].textContent, tds[5].textContent, tds[6].textContent];
+      if (tds.length < 5) return;
+      const row = [i++, tds[1].textContent, tds[2].textContent, tds[3].textContent, tds[4].textContent];
       lines.push(row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
     });
     const blob = new Blob([lines.join('\n')], {type:'text/csv'});
@@ -760,32 +747,16 @@
     a.click();
   });
 
-  // ================
-  // ADMIN SETTINGS (OFFICE LOCATION)
-  // ================
-  btnUseHere.addEventListener('click', async () => {
-    setMsg.textContent = '';
-    try {
-      const pos = await getPositionOnce();
-      latEl.value = pos.coords.latitude.toFixed(6);
-      lngEl.value = pos.coords.longitude.toFixed(6);
-      radiusEl.value = '20';
-      setMsg.textContent = 'Coordinates captured. Click Save to apply.';
-    } catch (e) {
-      setMsg.textContent = 'Location failed: ' + e.message;
-    }
-  });
-
-  btnSaveSettings.addEventListener('click', async () => {
-    if (!state.isAdmin) return;
-    const lat = parseFloat(latEl.value), lng = parseFloat(lngEl.value);
-    let r = parseInt(radiusEl.value || '20', 10);
-    if (Number.isNaN(lat) || Number.isNaN(lng)) { setMsg.textContent = 'Enter valid lat/lng.'; return; }
-    if (Number.isNaN(r) || r <= 0) r = 20;
-    r = Math.min(r, MAX_RADIUS);
-    await setDoc(doc(db,'settings','office'), { lat, lng, radiusMeters: r });
-    state.office = await loadOffice();
-    setMsg.textContent = 'Saved.';
+  btnExportTotals.addEventListener('click', async () => {
+    const rows = await loadTotalsPreviousTwoWeeks();
+    const headers = ['Name','Username','Total Hours (last 2 weeks)'];
+    const lines = [headers.join(',')];
+    rows.forEach(r => lines.push([r.name, r.username, r.hours].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')));
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `timeclock_totals_last2weeks.csv`;
+    a.click();
   });
 </script>
 </body>
