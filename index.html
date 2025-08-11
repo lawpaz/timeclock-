@@ -8,11 +8,10 @@
   :root { --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; --accent2:#3b82f6; --warn:#f59e0b; --danger:#ef4444; --border:#1f2937; }
   * { box-sizing:border-box; }
   body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:linear-gradient(120deg,#0b1023,#0f172a 35%,#0b1023); color:var(--text); }
-  header { padding:18px 16px; display:flex; gap:14px; align-items:center; justify-content:space-between; max-width:1100px; margin:0 auto; }
+  header { padding:18px 16px; display:flex; gap:14px; align-items:center; justify-content:space-between; max-width:1200px; margin:0 auto; }
   header h1 { margin:0; font-size:18px; font-weight:700; }
-  .container { max-width:1100px; margin:0 auto; padding:0 16px 40px; display:grid; grid-template-columns: 1.1fr .9fr; gap:18px; }
-  @media (max-width:980px){ .container{ grid-template-columns:1fr; } }
-  .card { background:rgba(17,24,39,.75); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:14px; padding:16px; }
+  .container { max-width:1200px; margin:0 auto; padding:0 16px 40px; display:grid; grid-template-columns: 1fr; gap:18px; }
+  .card { background:rgba(17,24,39,.78); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:14px; padding:16px; }
   .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   label { font-size:12px; color:var(--muted); }
   input,select { background:#0b1220; border:1px solid var(--border); color:var(--text); border-radius:10px; height:40px; padding:0 12px; outline:none; }
@@ -32,6 +31,8 @@
   .tab.active{ background:#1a2338; color:#fff; }
   .hidden{ display:none !important; }
   .badge{ font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2a364a; color:#9aa6bf; }
+  .nametabs { display:flex; gap:6px; overflow:auto; padding-bottom:4px; }
+  .nametabs button { white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -46,7 +47,7 @@
 
 <!-- AUTH -->
 <div id="auth" class="container">
-  <section class="card" style="grid-column:1/-1;">
+  <section class="card">
     <div class="tabs">
       <button class="tab active" data-tab="signin">Sign In</button>
       <button class="tab" data-tab="signup">Sign Up</button>
@@ -100,7 +101,7 @@
 
 <!-- APP -->
 <div id="app" class="container hidden">
-  <!-- Left: Clock & status -->
+  <!-- Top status -->
   <section class="card">
     <div class="row" style="gap:12px; margin-bottom:10px;">
       <div class="grow">
@@ -109,7 +110,10 @@
           <span id="roleBadge" class="badge hidden">Admin</span>
           <span id="activeBadge" class="badge hidden">Inactive</span>
         </div>
-        <div class="hint" id="clockHint">Clocking is allowed from approved desktop/laptop only.</div>
+        <div class="hint">Clocking is allowed from approved desktop/laptop only.</div>
+      </div>
+      <div class="grow right">
+        <span id="periodLbl" class="pill">Period: —</span>
       </div>
     </div>
 
@@ -121,36 +125,37 @@
       <button id="btnIn" class="btn-go">Clock In</button>
       <button id="btnOut" class="btn-warn" disabled>Clock Out</button>
     </div>
-    <div id="geoMsg" class="hint"></div>
+    <div id="msg" class="hint"></div>
   </section>
 
-  <!-- Right: Day selector -->
-  <aside class="card">
-    <div class="row" style="gap:8px;">
-      <div class="grow"><label for="day">View day</label><input type="date" id="day" /></div>
-      <div class="grow"><label>&nbsp;</label><button id="btnAddManual" class="btn-ghost hidden">Add Manual Pair</button></div>
-      <div><label>&nbsp;</label><button id="btnDeleteDay" class="btn-danger hidden">Delete Day’s Entries</button></div>
-    </div>
-    <div class="hint" style="margin-top:8px;">Admins can edit times directly in the table. Staff cannot.</div>
-  </aside>
-
-  <!-- Log table -->
-  <section class="card" style="grid-column: 1 / -1;">
+  <!-- Entries -->
+  <section class="card">
     <div class="row" style="justify-content:space-between; margin-bottom:8px;">
-      <h3 style="margin:0; font-size:16px;">Entries</h3>
-      <span class="pill" id="activeTz">Timezone: —</span>
+      <h3 style="margin:0; font-size:16px;">Entries (current period)</h3>
+      <div class="row">
+        <div id="nameTabs" class="nametabs hidden"></div>
+        <button id="btnAddEntry" class="btn-ghost hidden">Add Entry</button>
+      </div>
     </div>
     <table>
-      <thead><tr><th>#</th><th>Name</th><th>User</th><th>Type</th><th>When</th><th class="right">Actions</th></tr></thead>
-      <tbody id="rows"></tbody>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Date</th>
+          <th>Clock In</th>
+          <th>Clock Out</th>
+          <th>Day</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="entryRows"></tbody>
     </table>
   </section>
 
-  <!-- Admin Panel -->
-  <section id="admin" class="card hidden" style="grid-column: 1 / -1;">
+  <!-- Admin: Staff + Reports -->
+  <section id="admin" class="card hidden">
     <div class="tabs">
       <button class="tab active" data-admin-tab="staff">Staff</button>
-      <button class="tab" data-admin-tab="punches">Punches</button>
       <button class="tab" data-admin-tab="reports">Reports</button>
     </div>
 
@@ -162,34 +167,22 @@
       </table>
     </div>
 
-    <!-- Punches tab (info only) -->
-    <div id="admin-punches" class="hidden">
-      <div class="hint">Use the main "Entries" table and date picker above. Click a timestamp to edit and press Enter.</div>
-    </div>
-
     <!-- Reports -->
     <div id="admin-reports" class="hidden">
       <div class="row" style="gap:10px; margin-bottom:10px;">
-        <button id="btnLoadLatest" class="btn-primary">Load Latest Report</button>
-        <button id="btnGenerateNow" class="btn-ghost">Generate Now (biweekly Mon–Sat)</button>
+        <button id="btnGenerateNow" class="btn-primary">Generate Now (biweekly Mon–Sat)</button>
+        <button id="btnLoadLatest" class="btn-ghost">Load Latest</button>
         <button id="btnExportTotals" class="btn-ghost">Export CSV</button>
       </div>
       <div class="hint" id="reportRange"></div>
       <table>
-        <thead><tr><th>Name</th><th>Username</th><th class="right">Total Hours</th></tr></thead>
+        <thead><tr><th>Name</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th class="right">Daily Hours</th></tr></thead>
         <tbody id="reportRows"></tbody>
       </table>
 
       <h4 style="margin:16px 0 6px;">Saved reports</h4>
       <table>
-        <thead>
-          <tr>
-            <th>Start</th>
-            <th>End</th>
-            <th>Generated</th>
-            <th class="right">Actions</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Start</th><th>End</th><th>Generated</th><th class="right">Actions</th></tr></thead>
         <tbody id="reportList"></tbody>
       </table>
     </div>
@@ -198,16 +191,13 @@
 
 <div class="footer">Desktop-only. Data stored in Firebase.</div>
 
-<!-- Firebase -->
+<!-- Firebase logic -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, addDoc, collection, query, where, onSnapshot, getDocs, serverTimestamp, updateDoc, deleteDoc, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  // ===== Feature flags =====
-  const ENFORCE_DESKTOP_ONLY = true; // block phones/tablets
-
-  // ===== Your Firebase config =====
+  // ===== Config =====
   const firebaseConfig = {
     apiKey: "AIzaSyCAi1zcDsdprr78A5RdYiOhz6Xn8Oiz54s",
     authDomain: "timeclock-15ac7.firebaseapp.com",
@@ -228,262 +218,462 @@
   const $$ = s => Array.from(document.querySelectorAll(s));
   const pad2 = n => String(n).padStart(2,'0');
   const fmtHM = mins => `${Math.floor(mins/60)}h ${pad2(Math.round(mins%60))}m`;
-  const fmtHours = mins => (Math.round((mins/60)*100)/100).toFixed(2);
-  const toLocalInput = ts => { if (!ts) return ''; const d = ts instanceof Date ? ts : new Date(ts); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
-  const fromLocalInput = v => { if (!v) return null; const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d; };
-  const todayISO = () => new Date().toISOString().slice(0,10);
-  const show = (el, visible=true) => el.classList.toggle('hidden', !visible);
+  const fmt2 = n => (Math.round(n*100)/100).toFixed(2);
+  const onlyHM = d => pad2(d.getHours())+':'+pad2(d.getMinutes()); // 24h HH:MM
+  const dateKey = d => d.toISOString().slice(0,10);
+  const niceDate = d => d.toLocaleDateString(undefined,{ weekday:'long', month:'long', day:'numeric' });
+  const show = (el, v=true) => el.classList.toggle('hidden', !v);
   const fullNameOf = u => [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
+  const todayISO = () => new Date().toISOString().slice(0,10);
+  const msg = $('#msg');
 
-  function isBlockedMobileOrTablet() {
-    if (!ENFORCE_DESKTOP_ONLY) return false;
-    const ua = (navigator.userAgent || '').toLowerCase();
-    const isMobileUA = /android|iphone|ipad|ipod|iemobile|blackberry|opera mini/.test(ua);
-    const touch = (navigator.maxTouchPoints || 0) > 0;
-    const smallScreen = Math.min(window.screen.width, window.screen.height) < 800;
-    const platform = (navigator.platform || '').toLowerCase();
-    const iPadDesktopMode = platform.includes('mac') && touch;
-    return isMobileUA || iPadDesktopMode || (touch && smallScreen);
-  }
-  if (isBlockedMobileOrTablet()) {
-    document.body.innerHTML = `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0f172a; color:#e5e7eb; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;"><div style="max-width:560px; background:#111827; border:1px solid #1f2937; border-radius:12px; padding:20px;"><h2 style="margin:0 0 8px;">Desktop Required</h2><p style="margin:8px 0 0; color:#cbd5e1;">Please use a desktop or laptop computer to access the time clock.</p></div></div>`;
-    throw new Error('Blocked on mobile/tablet');
-  }
+  // Desktop-only guard
+  (function enforceDesktop(){
+    const ua = (navigator.userAgent||'').toLowerCase();
+    const mobile = /android|iphone|ipad|ipod|iemobile|blackberry|opera mini/.test(ua);
+    const touch = (navigator.maxTouchPoints||0) > 0;
+    const small = Math.min(screen.width, screen.height) < 800;
+    const iPadAsMac = (navigator.platform||'').toLowerCase().includes('mac') && touch;
+    if (mobile || iPadAsMac || (touch && small)) {
+      document.body.innerHTML = '<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0f172a; color:#e5e7eb; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;"><div style="max-width:560px; background:#111827; border:1px solid #1f2937; border-radius:12px; padding:20px;"><h2 style="margin:0 0 8px;">Desktop Required</h2><p>Please use a desktop or laptop computer to access the time clock.</p></div></div>';
+      throw new Error('Blocked mobile/tablet');
+    }
+  })();
 
-  // Clock & basic UI refs
-  const nowEl = $('#now'); setInterval(()=>{ nowEl.textContent = new Date().toLocaleString(); },1000);
-  $$('.tab[data-tab]').forEach(btn => btn.addEventListener('click', () => { $$('.tab[data-tab]').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); show($('#signin'),btn.dataset.tab==='signin'); show($('#signup'),btn.dataset.tab==='signup'); }));
-  $$('.tab[data-admin-tab]').forEach(btn => btn.addEventListener('click', () => { $$('.tab[data-admin-tab]').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); show($('#admin-staff'),btn.dataset.adminTab==='staff'); show($('#admin-punches'),btn.dataset.adminTab==='punches'); show($('#admin-reports'),btn.dataset.adminTab==='reports'); if(btn.dataset.adminTab==='reports'){ loadLatestReport(); loadAllReports(); } }));
+  // Clock
+  const nowEl = $('#now'); setInterval(()=>nowEl.textContent = new Date().toLocaleString(), 1000);
 
+  // Auth tabs
+  $$('.tab[data-tab]').forEach(b=>b.addEventListener('click',()=>{
+    $$('.tab[data-tab]').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); show($('#signin'), b.dataset.tab==='signin'); show($('#signup'), b.dataset.tab==='signup');
+  }));
+
+  // Admin tabs
+  $$('.tab[data-admin-tab]').forEach(b=>b.addEventListener('click',()=>{
+    $$('.tab[data-admin-tab]').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    show($('#admin-staff'), b.dataset.adminTab==='staff');
+    show($('#admin-reports'), b.dataset.adminTab==='reports');
+    if (b.dataset.adminTab==='reports'){ loadLatestReport(); loadAllReports(); }
+  }));
+
+  // UI refs
   const siEmail=$('#siEmail'), siPass=$('#siPass'), siMsg=$('#siMsg');
   const suFirst=$('#suFirst'), suLast=$('#suLast'), suUsername=$('#suUsername'), suEmail=$('#suEmail'), suPass=$('#suPass'), suMsg=$('#suMsg');
   const btnSignIn=$('#btnSignIn'), btnReset=$('#btnReset'), btnSignUp=$('#btnSignUp');
   const btnSignOut=$('#btnSignOut'), btnExport=$('#btnExport');
   const welcome=$('#welcome'), roleBadge=$('#roleBadge'), activeBadge=$('#activeBadge');
   const statusEl=$('#status'), sinceEl=$('#since'), todayTotalEl=$('#todayTotal');
-  const btnIn=$('#btnIn'), btnOut=$('#btnOut'), geoMsg=$('#geoMsg');
-  const dayInput=$('#day'), rowsEl=$('#rows'), tzEl=$('#activeTz');
+  const btnIn=$('#btnIn'), btnOut=$('#btnOut');
+  const periodLbl=$('#periodLbl');
+  const entryRows=$('#entryRows'); const btnAddEntry=$('#btnAddEntry'); const nameTabs = $('#nameTabs');
   const adminSection=$('#admin'), staffRows=$('#staffRows');
-  const btnAddManual=$('#btnAddManual'), btnDeleteDay=$('#btnDeleteDay');
+  const reportRows=$('#reportRows'), reportRange=$('#reportRange'), btnLoadLatest=$('#btnLoadLatest'), btnGenerateNow=$('#btnGenerateNow'), btnExportTotals=$('#btnExportTotals'), reportList=$('#reportList');
 
-  const reportRows=$('#reportRows'), reportRange=$('#reportRange'), btnLoadLatest=$('#btnLoadLatest'), btnGenerateNow=$('#btnGenerateNow'), btnExportTotals=$('#btnExportTotals');
-  const reportList = $('#reportList');
-
-  tzEl.textContent = 'Timezone: ' + Intl.DateTimeFormat().resolvedOptions().timeZone;
-  dayInput.value = todayISO();
-
-  let state = { user:null, isAdmin:false, me:null, currentStatus:'out', usersCache:new Map() };
+  // State
+  let state = { user:null, isAdmin:false, me:null, users:new Map(), currentStatus:'out', filterUid:null, period:null, liveUnsub:null };
 
   function validUsername(u){ return /^[a-z0-9_]{3,20}$/.test(u||''); }
-  async function resolveLoginIdentifier(idOrUsername){ if(!idOrUsername) throw new Error('Enter email or username.'); if(idOrUsername.includes('@')) return idOrUsername.trim().toLowerCase(); const uname=idOrUsername.trim().toLowerCase(); const snap=await getDoc(doc(db,'usernames',uname)); if(!snap.exists()) throw new Error('Username not found.'); const data=snap.data(); if(!data.email) throw new Error('Username has no email.'); return String(data.email).toLowerCase(); }
+  async function resolveLoginIdentifier(idOrUsername){
+    if(!idOrUsername) throw new Error('Enter email or username.');
+    if(idOrUsername.includes('@')) return idOrUsername.trim().toLowerCase();
+    const uname=idOrUsername.trim().toLowerCase();
+    const s=await getDoc(doc(db,'usernames', uname)); if(!s.exists()) throw new Error('Username not found.');
+    const data=s.data(); if(!data.email) throw new Error('Username has no email.');
+    return String(data.email).toLowerCase();
+  }
 
-  btnSignIn.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await signInWithEmailAndPassword(auth,email,siPass.value);}catch(e){ siMsg.textContent='Sign-in failed: ' + e.message; }});
-  btnReset.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await sendPasswordResetEmail(auth,email); siMsg.textContent='Reset email sent if the account exists.';}catch(e){ siMsg.textContent='Password reset failed: ' + e.message; }});
+  // Sign-in/up
+  btnSignIn.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await signInWithEmailAndPassword(auth,email,siPass.value);}catch(e){ siMsg.textContent='Sign-in failed: '+e.message; }});
+  btnReset.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await sendPasswordResetEmail(auth,email); siMsg.textContent='Reset email sent if the account exists.';}catch(e){ siMsg.textContent='Password reset failed: '+e.message; }});
   btnSignUp.addEventListener('click', async ()=>{ suMsg.textContent=''; try{
-      const firstName=suFirst.value.trim(), lastName=suLast.value.trim(); if(!firstName||!lastName) throw new Error('Enter first and last name.');
-      const username=suUsername.value.trim().toLowerCase(); if(!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/_');
-      const email=suEmail.value.trim().toLowerCase(); const pass=suPass.value; if(pass.length<8) throw new Error('Password must be at least 8 characters.');
-      const exists=await getDoc(doc(db,'usernames',username)); if(exists.exists()) throw new Error('Username is taken.');
-      const cred=await createUserWithEmailAndPassword(auth,email,pass); await updateProfile(cred.user,{displayName:username});
-      await setDoc(doc(db,'users',cred.user.uid),{ username,email,firstName,lastName,role:'staff',active:false,createdAt:serverTimestamp() });
-      await setDoc(doc(db,'usernames',username),{ uid:cred.user.uid, email });
-      suMsg.textContent='Account created. Admin must activate your account.';
-    }catch(e){ suMsg.textContent='Sign-up failed: ' + e.message; }});
-
+    const firstName=suFirst.value.trim(), lastName=suLast.value.trim(); if(!firstName||!lastName) throw new Error('Enter first and last name.');
+    const username=suUsername.value.trim().toLowerCase(); if(!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/_');
+    const email=suEmail.value.trim().toLowerCase(); const pass=suPass.value; if(pass.length<8) throw new Error('Password must be at least 8 characters.');
+    const exists=await getDoc(doc(db,'usernames',username)); if(exists.exists()) throw new Error('Username is taken.');
+    const cred=await createUserWithEmailAndPassword(auth,email,pass); await updateProfile(cred.user,{displayName:username});
+    await setDoc(doc(db,'users',cred.user.uid),{ username,email,firstName,lastName,role:'staff',active:false,createdAt:serverTimestamp() });
+    await setDoc(doc(db,'usernames',username),{ uid:cred.user.uid, email });
+    suMsg.textContent='Account created. Admin must activate your account.';
+  }catch(e){ suMsg.textContent='Sign-up failed: '+e.message; }});
   btnSignOut.addEventListener('click', async ()=>{ await signOut(auth); });
 
-  async function checkAdmin(uid){ const snap=await getDoc(doc(db,'admins',uid)); return snap.exists(); }
-  async function ensureUserDoc(user){ const ref=doc(db,'users',user.uid); const snap=await getDoc(ref); if(!snap.exists()) await setDoc(ref,{ username:user.displayName||'', email:user.email, role:'staff', active:false, createdAt:serverTimestamp() }); const data=(await getDoc(ref)).data(); state.usersCache.set(user.uid,data); return data; }
+  // Roles
+  async function isAdmin(uid){ const s=await getDoc(doc(db,'admins',uid)); return s.exists(); }
+  async function ensureUserDoc(user){
+    const ref=doc(db,'users', user.uid), s=await getDoc(ref);
+    if(!s.exists()) await setDoc(ref, { username:user.displayName||'', email:user.email, role:'staff', active:false, createdAt:serverTimestamp() });
+    const data=(await getDoc(ref)).data(); state.users.set(user.uid,data); return data;
+  }
 
-  function renderAuth(signed){ show($('#auth'),!signed); show($('#app'),!!signed); show(btnSignOut,!!signed); show(btnExport,!!signed && state.isAdmin); }
+  function currentPeriod(){
+    const now=new Date(); const dow=now.getDay(); // 0 Sun .. 6 Sat
+    const start=new Date(now);
+    if(dow===0) start.setDate(start.getDate()+1); else start.setDate(start.getDate()-(dow-1)); // Monday
+    start.setHours(0,0,0,0);
+    const end=new Date(start); end.setDate(start.getDate()+5); end.setHours(23,59,59,999); // Saturday
+    return {start,end};
+  }
+  function previousPeriodEnd(){
+    // last Saturday end
+    const now=new Date(); const dow=now.getDay(); const daysSinceSat=(dow-6+7)%7;
+    const end=new Date(now); end.setDate(end.getDate()-daysSinceSat); end.setHours(23,59,59,999);
+    return end;
+  }
+  function previousPeriodRange(){
+    const end=previousPeriodEnd(); const start=new Date(end); start.setDate(start.getDate()-12); start.setHours(0,0,0,0); return {start,end};
+  }
 
-  onAuthStateChanged(auth, async (user)=>{ state.user=user||null; if(!user){ renderAuth(false); return; }
-    state.isAdmin=await checkAdmin(user.uid); state.me=await ensureUserDoc(user);
-    welcome.textContent=`Welcome, ${fullNameOf(state.me)||state.me?.username||user.email}`; show(roleBadge,state.isAdmin); show(activeBadge,!state.me?.active);
+  function renderAuth(signed){ show($('#auth'),!signed); show($('#app'),!!signed); show(btnSignOut,!!signed); show(btnExport,!!signed); }
+
+  onAuthStateChanged(auth, async (user)=>{
+    state.user=user||null; if(!user){ if(state.liveUnsub) state.liveUnsub(); renderAuth(false); return; }
+    state.isAdmin = await isAdmin(user.uid);
+    state.me = await ensureUserDoc(user);
+    welcome.textContent = `Welcome, ${fullNameOf(state.me)||state.me?.username||user.email}`;
+    show(roleBadge, state.isAdmin); show(activeBadge, !state.me?.active);
+    show(adminSection, state.isAdmin);
     renderAuth(true);
-    show(btnAddManual,state.isAdmin); show(btnDeleteDay,state.isAdmin); show(adminSection,state.isAdmin);
-    const canPunch=state.isAdmin||!!state.me?.active; btnIn.disabled=!canPunch; btnOut.disabled=true;
-    subscribeToday();
-    if(state.isAdmin){ loadStaff(); loadLatestReport(); loadAllReports(); }
+
+    state.period=currentPeriod();
+    periodLbl.textContent = `Period: ${state.period.start.toDateString()} – ${state.period.end.toDateString()}`;
+
+    state.filterUid = state.isAdmin ? null : user.uid; // staff see only theirs
+    wireNameTabs(); // admin only
+    subscribeEntries();
+    if (state.isAdmin) loadStaff();
+    recomputeStatus();
   });
 
-  // ===== Clock / punches =====
-  async function lastPunch(uid){ const q1=query(collection(db,'punches'), where('uid','==',uid), orderBy('ts','desc'), limit(1)); const s=await getDocs(q1); return s.empty?null:{ id:s.docs[0].id, ...s.docs[0].data() }; }
-  async function recomputeStatus(){ const last=await lastPunch(state.user.uid); if(!last || last.type==='out'){ state.currentStatus='out'; statusEl.textContent='Not clocked in'; btnIn.disabled=!(state.isAdmin||state.me?.active); btnOut.disabled=true; sinceEl.textContent='—'; } else { state.currentStatus='in'; statusEl.textContent='Clocked in'; btnIn.disabled=true; btnOut.disabled=false; sinceEl.textContent=(last.ts?.toDate?.()||new Date()).toLocaleString(); } }
-  async function doPunch(type){ geoMsg.textContent=''; try{
-      const me=state.me||{}; await addDoc(collection(db,'punches'),{ uid:state.user.uid, username:me.username||state.user.email, fullName: fullNameOf(me)||'', type, ts:serverTimestamp(), ua:navigator.userAgent||'', screen:{w:screen.width,h:screen.height}, source:'desktop' });
-      geoMsg.textContent='Recorded ✓'; await recomputeStatus();
-    }catch(e){ geoMsg.textContent='Error: ' + e.message; } }
-  btnIn.addEventListener('click', ()=>doPunch('in')); btnOut.addEventListener('click', ()=>doPunch('out'));
-
-  // Today view
-  let unsubToday=null; function subscribeToday(){ if(unsubToday) unsubToday(); const d=dayInput.value||todayISO(); const start=new Date(d+'T00:00:00'); const end=new Date(d+'T23:59:59');
-    const q1=query(collection(db,'punches'), orderBy('ts','asc'));
-    unsubToday=onSnapshot(q1, snap => {
-      const all=[]; rowsEl.innerHTML=''; let idx=1, mins=0;
-      snap.forEach(docu=>{ const data=docu.data(); if(!data.ts?.toDate) return; const when=data.ts.toDate(); if(when<start||when>end) return; if(!state.isAdmin && data.uid!==state.user.uid) return; all.push({ id:docu.id, ...data }); });
-      all.sort((a,b)=>a.ts.toMillis()-b.ts.toMillis()).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${idx++}</td><td>${r.fullName||''}</td><td>${r.username||r.uid?.slice(0,6)||''}</td><td>${r.type}</td><td data-edit="ts" data-id="${r.id}">${toLocalInput(r.ts?.toDate?.())}</td><td class="right">${state.isAdmin?`<button data-del="${r.id}" class="btn-danger" style="height:32px;">Delete</button>`:''}</td>`; rowsEl.appendChild(tr); });
-      const mine=all.filter(r=>r.uid===state.user.uid); let lastIn=null; mine.forEach(r=>{ if(r.type==='in') lastIn=r.ts?.toDate?.()||null; if(r.type==='out'&&lastIn){ mins+=(r.ts.toDate()-lastIn)/60000; lastIn=null; } }); todayTotalEl.textContent=fmtHM(mins);
-      if(state.isAdmin){
-        rowsEl.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{ if(!confirm('Delete this punch?'))return; await deleteDoc(doc(db,'punches',b.getAttribute('data-del'))); }));
-        rowsEl.querySelectorAll('[data-edit="ts"]').forEach(cell=>{ cell.contentEditable=true; cell.addEventListener('keydown', async e=>{ if(e.key==='Enter'){ e.preventDefault(); const val=cell.textContent.trim(); const dt=fromLocalInput(val); if(!dt){ alert('Invalid date/time'); return; } await updateDoc(doc(db,'punches',cell.getAttribute('data-id')), { ts: Timestamp.fromDate(dt) }); cell.blur(); } });});
+  // ===== Strict IN→OUT flow & status =====
+  async function lastPunch(uid){
+    const q1=query(collection(db,'punches'), where('uid','==',uid), orderBy('ts','desc'), limit(1));
+    const s=await getDocs(q1); return s.empty?null:{ id:s.docs[0].id, ...s.docs[0].data() };
+  }
+  async function recomputeStatus(){
+    const last=await lastPunch(state.user.uid);
+    if(!last || last.type==='out'){
+      state.currentStatus='out'; statusEl.textContent='Not clocked in'; btnIn.disabled=!(state.isAdmin||state.me?.active); btnOut.disabled=true; sinceEl.textContent='—';
+    } else {
+      state.currentStatus='in'; statusEl.textContent='Clocked in'; btnIn.disabled=true; btnOut.disabled=false; sinceEl.textContent=(last.ts?.toDate?.()||new Date()).toLocaleString();
+    }
+  }
+  async function doPunch(type){
+    msg.textContent='';
+    try{
+      const last=await lastPunch(state.user.uid);
+      if(type==='in'){
+        if (last && last.type==='in') throw new Error('Already clocked in. Please clock out first.');
+      } else if(type==='out'){
+        if (!last || last.type!=='in') throw new Error('You are not clocked in.');
       }
-      recomputeStatus();
+      const me=state.me||{};
+      await addDoc(collection(db,'punches'),{
+        uid:state.user.uid, username:me.username||state.user.email, fullName:fullNameOf(me)||'', type,
+        ts:serverTimestamp(), dayType:'Work Day', source:'desktop',
+        ua:navigator.userAgent||'', screen:{w:screen.width,h:screen.height}
+      });
+      msg.textContent='Recorded ✓';
+      await recomputeStatus();
+    }catch(e){ msg.textContent='Error: '+e.message; }
+  }
+  $('#btnIn').addEventListener('click', ()=>doPunch('in'));
+  $('#btnOut').addEventListener('click', ()=>doPunch('out'));
+
+  // ===== Entries (period view, per-user/day rows) =====
+  function wireNameTabs(){
+    if(!state.isAdmin){ show(nameTabs,false); show(btnAddEntry,false); return; }
+    show(nameTabs,true); show(btnAddEntry,true);
+    nameTabs.innerHTML='';
+    const add = (id,label)=>{ const b=document.createElement('button'); b.className='tab'+(state.filterUid===id?' active':''); b.textContent=label; b.addEventListener('click',()=>{ state.filterUid=id; wireNameTabs(); buildEntries(); }); nameTabs.appendChild(b); };
+    add(null,'All');
+    // build from users collection (active or all)
+    getDocs(collection(db,'users')).then(s=>{
+      const arr=[]; s.forEach(d=>arr.push({id:d.id, ...d.data()}));
+      arr.sort((a,b)=>(fullNameOf(a)||a.username||'').localeCompare(fullNameOf(b)||b.username||''));
+      arr.forEach(u=> add(u.id, fullNameOf(u)||u.username||u.email));
     });
   }
-  dayInput.addEventListener('change', subscribeToday);
 
-  // Admin: manual / delete day
-  btnAddManual.addEventListener('click', async ()=>{ if(!state.isAdmin) return; const who=prompt('Enter username or email:'); if(!who) return; let u=null; if(who.includes('@')){ const qs=await getDocs(query(collection(db,'users'), where('email','==', who.toLowerCase()))); if(!qs.empty) u={ id:qs.docs[0].id, ...qs.docs[0].data() }; } else { const qs=await getDocs(query(collection(db,'users'), where('username','==', who.toLowerCase()))); if(!qs.empty) u={ id:qs.docs[0].id, ...qs.docs[0].data() }; } if(!u){ alert('User not found.'); return; }
-    const d=dayInput.value||todayISO(); const mk=(hhmm)=>{ const [hh,mm]=(hhmm||'').split(':').map(x=>parseInt(x,10)); if(Number.isNaN(hh)||Number.isNaN(mm)) return null; return new Date(`${d}T${pad2(hh)}:${pad2(mm)}:00`); };
-    const s=prompt(`Start time for ${fullNameOf(u) || u.username || u.email} on ${d} (24h HH:MM)`,'09:00'); const e=prompt(`End time (24h HH:MM)`,'17:00');
-    const sd=mk(s), ed=mk(e); if(!sd||!ed||ed<=sd){ alert('Times invalid.'); return; }
-    await addDoc(collection(db,'punches'), { uid:u.id, username:u.username||u.email, fullName: fullNameOf(u)||'', type:'in', ts:Timestamp.fromDate(sd), source:'manual' });
-    await addDoc(collection(db,'punches'), { uid:u.id, username:u.username||u.email, fullName: fullNameOf(u)||'', type:'out', ts:Timestamp.fromDate(ed), source:'manual' });
-    alert('Manual pair added.');
+  function subscribeEntries(){
+    if(state.liveUnsub) state.liveUnsub();
+    const q1=query(collection(db,'punches'), orderBy('ts','asc'));
+    state.liveUnsub = onSnapshot(q1, ()=> buildEntries()); // rebuild on any change
+    buildEntries();
+  }
+
+  async function buildEntries(){
+    const start=state.period.start, end=state.period.end;
+    const snaps = await getDocs(query(collection(db,'punches'), orderBy('ts','asc')));
+    // name map
+    const userMap = new Map();
+    const us = await getDocs(collection(db,'users'));
+    us.forEach(d=>userMap.set(d.id,{username:d.data().username||'', full: fullNameOf(d.data())||''}));
+
+    // group per uid/date
+    const byDay = new Map(); // key: uid|dateKey -> {uid,dateKey, firstIn, lastOut, totalMins, dayType, docs:[{id,type,ts}]}
+    const lastInPerUid = new Map();
+
+    snaps.forEach(docu=>{
+      const p=docu.data(); if(!p.ts?.toDate) return;
+      const when=p.ts.toDate(); if(when<start || when>end) return;
+      if(!state.isAdmin && p.uid!==state.user.uid) return;
+      if(state.filterUid && p.uid!==state.filterUid) return;
+
+      const k=p.uid+'|'+dateKey(when);
+      const rec=byDay.get(k) || { uid:p.uid, dateKey:dateKey(when), firstIn:null, lastOut:null, totalMins:0, dayType:p.dayType||'Work Day', docs:[] };
+      rec.docs.push({ id:docu.id, type:p.type, ts:when });
+      if(p.type==='in'){ if(!rec.firstIn || when<rec.firstIn) rec.firstIn=when; lastInPerUid.set(p.uid, {when, k}); }
+      if(p.type==='out'){
+        const lastIn = lastInPerUid.get(p.uid);
+        if(lastIn && lastIn.k===k){ rec.totalMins += (when - lastIn.when)/60000; lastInPerUid.delete(p.uid); }
+        if(!rec.lastOut || when>rec.lastOut) rec.lastOut=when;
+      }
+      byDay.set(k, rec);
+    });
+
+    // render
+    const rows = Array.from(byDay.values()).sort((a,b)=>{
+      const an = (userMap.get(a.uid)?.full || userMap.get(a.uid)?.username || a.uid).toLowerCase();
+      const bn = (userMap.get(b.uid)?.full || userMap.get(b.uid)?.username || b.uid).toLowerCase();
+      if(an!==bn) return an<bn?-1:1;
+      return a.dateKey<b.dateKey?-1:1;
+    });
+
+    entryRows.innerHTML = '';
+    if (rows.length===0){
+      const tr=document.createElement('tr'); tr.innerHTML=`<td colspan="6" class="hint">No entries in this period.</td>`; entryRows.appendChild(tr); return;
+    }
+
+    rows.forEach(r=>{
+      const nm = userMap.get(r.uid)?.full || userMap.get(r.uid)?.username || r.uid.slice(0,6);
+      const d = new Date(r.dateKey+'T00:00:00');
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${nm}</td>
+        <td data-k="date" data-key="${r.uid}|${r.dateKey}" contenteditable="${state.isAdmin}">${d.toISOString().slice(0,10)}</td>
+        <td data-k="in" data-key="${r.uid}|${r.dateKey}" contenteditable="${state.isAdmin}">${r.firstIn?onlyHM(r.firstIn):''}</td>
+        <td data-k="out" data-key="${r.uid}|${r.dateKey}" contenteditable="${state.isAdmin}">${r.lastOut?onlyHM(r.lastOut):''}</td>
+        <td data-k="daytype" data-key="${r.uid}|${r.dateKey}" contenteditable="${state.isAdmin}">${r.dayType||'Work Day'}</td>
+        <td class="right">${state.isAdmin?'<button class="btn-danger" data-del="'+r.uid+'|'+r.dateKey+'" style="height:32px;">Delete Day</button>':''}</td>
+      `;
+      tr.dataset.docs = JSON.stringify(r.docs.map(x=>({id:x.id,type:x.type,ts:x.ts})));
+      entryRows.appendChild(tr);
+    });
+
+    if(state.isAdmin){
+      // edits
+      entryRows.querySelectorAll('[data-k]').forEach(cell=>{
+        cell.addEventListener('keydown', async (e)=>{
+          if(e.key!=='Enter') return; e.preventDefault(); cell.blur();
+          const kind=cell.getAttribute('data-k'); const key=cell.getAttribute('data-key');
+          const tr=cell.closest('tr'); const docs=JSON.parse(tr.dataset.docs); // [{id,type,ts}]
+          try{
+            if(kind==='date'){
+              const val=cell.textContent.trim(); // YYYY-MM-DD
+              const m=/^\d{4}-\d{2}-\d{2}$/.test(val); if(!m) throw new Error('Use YYYY-MM-DD');
+              // move ALL docs for this day to the new date (keep times)
+              for(const d of docs){
+                const t=new Date(val+'T'+onlyHM(new Date(d.ts)));
+                await updateDoc(doc(db,'punches', d.id), { ts: Timestamp.fromDate(t) });
+              }
+              msg.textContent='Date updated ✓';
+            } else if(kind==='in' || kind==='out'){
+              const val=cell.textContent.trim(); // HH:MM
+              if(!/^\d{2}:\d{2}$/.test(val)) throw new Error('Use HH:MM (24h)');
+              // find first IN or last OUT
+              let target = null, baseDate=null;
+              if(kind==='in'){
+                let min=1e15; docs.forEach(d=>{ if(d.type==='in' && d.ts<min){ min=d.ts; target=d; }});
+                baseDate = new Date(docs.find(d=>d.type).ts);
+              }else{
+                let max=0; docs.forEach(d=>{ if(d.type==='out' && d.ts>max){ max=d.ts; target=d; }});
+                baseDate = new Date(docs.find(d=>d.type).ts);
+              }
+              if(!target) throw new Error('No '+kind.toUpperCase()+' punch to edit.');
+              const dateStr = dateKey(new Date(target.ts));
+              const t=new Date(dateStr+'T'+val);
+              await updateDoc(doc(db,'punches', target.id), { ts: Timestamp.fromDate(t) });
+              msg.textContent=(kind==='in'?'Clock in':'Clock out')+' updated ✓';
+            } else if(kind==='daytype'){
+              const val=cell.textContent.trim() || 'Work Day';
+              for(const d of docs){ await updateDoc(doc(db,'punches', d.id), { dayType: val }); }
+              msg.textContent='Day type updated ✓';
+            }
+          }catch(err){ alert(err.message); }
+        });
+      });
+
+      // delete a whole day
+      entryRows.querySelectorAll('[data-del]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          if(!confirm('Delete ALL punches for this day?')) return;
+          const key=btn.getAttribute('data-del'); const row=btn.closest('tr'); const docs=JSON.parse(row.dataset.docs);
+          for(const d of docs){ await deleteDoc(doc(db,'punches', d.id)); }
+        });
+      });
+    }
+  }
+
+  // Add Entry (admin)
+  btnAddEntry.addEventListener('click', async ()=>{
+    if(!state.isAdmin) return;
+    const who = prompt('Username or email for the entry:'); if(!who) return;
+    let u=null;
+    if(who.includes('@')){ const qs=await getDocs(query(collection(db,'users'), where('email','==', who.toLowerCase()))); if(!qs.empty) u={ id:qs.docs[0].id, ...qs.docs[0].data() }; }
+    else { const qs=await getDocs(query(collection(db,'users'), where('username','==', who.toLowerCase()))); if(!qs.empty) u={ id:qs.docs[0].id, ...qs.docs[0].data() }; }
+    if(!u){ alert('User not found.'); return; }
+    const d = prompt('Date (YYYY-MM-DD):', todayISO()); if(!/^\d{4}-\d{2}-\d{2}$/.test(d||'')) return alert('Invalid date');
+    const cin = prompt('Clock in (HH:MM 24h):', '09:00'); if(!/^\d{2}:\d{2}$/.test(cin||'')) return alert('Invalid time');
+    const cout= prompt('Clock out (HH:MM 24h):', '17:00'); if(!/^\d{2}:\d{2}$/.test(cout||'')) return alert('Invalid time');
+    const dayType = prompt('Day type (e.g., Work Day, Holiday):', 'Work Day') || 'Work Day';
+    const tIn = new Date(d+'T'+cin+':00'); const tOut = new Date(d+'T'+cout+':00'); if(tOut<=tIn) return alert('Out must be after In');
+    await addDoc(collection(db,'punches'), { uid:u.id, username:u.username||u.email, fullName: fullNameOf(u)||'', type:'in',  ts: Timestamp.fromDate(tIn),  dayType, source:'manual' });
+    await addDoc(collection(db,'punches'), { uid:u.id, username:u.username||u.email, fullName: fullNameOf(u)||'', type:'out', ts: Timestamp.fromDate(tOut), dayType, source:'manual' });
+    alert('Entry added.');
   });
-  btnDeleteDay.addEventListener('click', async ()=>{ if(!state.isAdmin) return; if(!confirm('Delete ALL punches shown for this day?')) return; const del=rowsEl.querySelectorAll('[data-del]'); for(const b of del){ await deleteDoc(doc(db,'punches', b.getAttribute('data-del'))); } });
 
-  // ===== Admin: staff (includes EDIT) =====
-  function loadStaff(){ onSnapshot(collection(db,'users'), snap => {
-      staffRows.innerHTML=''; snap.forEach(d=>{ const u={ id:d.id, ...d.data() }; state.usersCache.set(u.id,u);
+  // ===== Staff list (admin) =====
+  function loadStaff(){
+    onSnapshot(collection(db,'users'), s=>{
+      staffRows.innerHTML='';
+      s.forEach(d=>{
+        const u={ id:d.id, ...d.data() }; state.users.set(u.id,u);
         const tr=document.createElement('tr');
         tr.innerHTML=`<td>${u.firstName||''}</td><td>${u.lastName||''}</td><td>${u.username||''}</td><td>${u.email||''}</td><td>${u.active?'Active':'Inactive'}</td>
         <td class="right">
-          <button data-edituser="${u.id}" class="btn-ghost" style="height:32px;">Edit</button>
-          <button data-act="${u.id}" class="btn-ghost" style="height:32px;">${u.active?'Disable':'Activate'}</button>
-          <button data-deluser="${u.id}" class="btn-danger" style="height:32px;">Delete</button>
+          <button class="btn-ghost" data-edit="${u.id}" style="height:32px;">Edit</button>
+          <button class="btn-ghost" data-act="${u.id}" style="height:32px;">${u.active?'Disable':'Activate'}</button>
+          <button class="btn-danger" data-del="${u.id}" style="height:32px;">Delete</button>
         </td>`;
         staffRows.appendChild(tr);
       });
-      staffRows.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.getAttribute('data-act'); const s=await getDoc(doc(db,'users',id)); if(!s.exists()) return; await updateDoc(doc(db,'users',id), { active: !s.data().active }); }));
-      staffRows.querySelectorAll('[data-deluser]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.getAttribute('data-deluser'); if(!confirm('Delete this user profile? (Auth login remains)')) return; await deleteDoc(doc(db,'users',id)); }));
-      staffRows.querySelectorAll('[data-edituser]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.getAttribute('data-edituser'); const s=await getDoc(doc(db,'users',id)); if(!s.exists()) return; const u=s.data();
+
+      staffRows.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', async ()=>{
+        const id=b.getAttribute('data-act'); const s=await getDoc(doc(db,'users', id)); if(!s.exists()) return;
+        await updateDoc(doc(db,'users', id), { active: !s.data().active });
+      }));
+      staffRows.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
+        const id=b.getAttribute('data-del'); if(!confirm('Delete this user profile? (Auth login remains)')) return; await deleteDoc(doc(db,'users', id));
+      }));
+      staffRows.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', async ()=>{
+        const id=b.getAttribute('data-edit'); const s=await getDoc(doc(db,'users', id)); if(!s.exists()) return; const u=s.data();
         const first=prompt('First name:', u.firstName||''); if(first===null) return;
         const last =prompt('Last name:',  u.lastName||''); if(last===null) return;
-        let uname =prompt('Username (3–20 letters/numbers/_):', u.username||''); if(uname===null) return; uname=String(uname).trim().toLowerCase(); if(!validUsername(uname)){ alert('Invalid username.'); return; }
-        // If username changed, move reservation doc
-        if (uname !== (u.username||'')) {
-          const exists=await getDoc(doc(db,'usernames', uname)); if(exists.exists()){ alert('Username is taken.'); return; }
+        let uname=prompt('Username (3–20 letters/numbers/_):', u.username||''); if(uname===null) return; uname=uname.trim().toLowerCase(); if(!validUsername(uname)) return alert('Invalid username');
+        if(uname !== (u.username||'')){
+          const exists=await getDoc(doc(db,'usernames', uname)); if(exists.exists()) return alert('Username is taken.');
           const old=u.username?.toLowerCase(); if(old){ const oldDoc=await getDoc(doc(db,'usernames', old)); if(oldDoc.exists() && oldDoc.data().uid===id){ await deleteDoc(doc(db,'usernames', old)); } }
           await setDoc(doc(db,'usernames', uname), { uid:id, email: u.email });
         }
         await updateDoc(doc(db,'users', id), { firstName:first, lastName:last, username:uname });
         alert('Updated.');
+        wireNameTabs(); // refresh the tabs list
       }));
-    }); }
-
-  // ===== Reports (biweekly Mon–Sat) =====
-  function lastSaturdayEnd(now=new Date()){
-    const dow=now.getDay(); // 0 Sun .. 6 Sat
-    const daysSinceSat=(dow - 6 + 7) % 7;
-    const d=new Date(now); d.setDate(d.getDate() - daysSinceSat); d.setHours(23,59,59,999); return d;
-  }
-  function periodStartFromEndSat(endSat){
-    const d=new Date(endSat); d.setDate(d.getDate() - 12); d.setHours(0,0,0,0); // Mon of two-week window (Mon..Sat)
-    return d;
-  }
-
-  async function computeTotals(start,end){
-    // Build name map from current users
-    const usersSnap = await getDocs(collection(db,'users'));
-    const nameByUid = new Map();
-    usersSnap.forEach(u=> nameByUid.set(u.id, { username:u.data().username||'', fullName: fullNameOf(u.data()) || '' }));
-
-    const snap = await getDocs(query(collection(db,'punches'), orderBy('ts','asc'))); // client-side filter
-    const byUser = new Map(), lastIn=new Map();
-    snap.forEach(d=>{ const x=d.data(); if(!x.ts?.toDate) return; const when=x.ts.toDate(); if(when<start || when>end) return;
-      const uid=x.uid;
-      if(!byUser.has(uid)) byUser.set(uid,{ mins:0 });
-      if(x.type==='in'){ lastIn.set(uid, when); }
-      if(x.type==='out'){ const li=lastIn.get(uid); if(li){ byUser.get(uid).mins += (when - li)/60000; lastIn.delete(uid); } }
     });
-    const rows = Array.from(byUser.entries()).map(([uid,v])=>{
-      const nm = nameByUid.get(uid) || {};
-      return { uid, name: (nm.fullName||nm.username||'').trim()||uid.slice(0,6), username: nm.username||'', hours: Number(fmtHours(v.mins)) };
-    }).sort((a,b)=> a.name.localeCompare(b.name));
+  }
+
+  // ===== Reports (biweekly Mon–Sat) with daily rows + totals =====
+  function lastSaturdayEnd(d=new Date()){ const dow=d.getDay(); const days=(dow-6+7)%7; const x=new Date(d); x.setDate(x.getDate()-days); x.setHours(23,59,59,999); return x; }
+  function periodStartFromEndSat(endSat){ const x=new Date(endSat); x.setDate(x.getDate()-12); x.setHours(0,0,0,0); return x; }
+
+  async function computeDailyRows(start,end){
+    const usersSnap = await getDocs(collection(db,'users'));
+    const nameByUid = new Map(); usersSnap.forEach(u=>nameByUid.set(u.id,{full: fullNameOf(u.data())||'', username:u.data().username||''}));
+
+    const snaps = await getDocs(query(collection(db,'punches'), orderBy('ts','asc')));
+    const perDay = new Map(); const lastIn = new Map(); // uid|date -> last in time
+    snaps.forEach(d=>{
+      const x=d.data(); if(!x.ts?.toDate) return; const t=x.ts.toDate();
+      if(t<start || t>end) return;
+      const k=x.uid+'|'+dateKey(t);
+      const item = perDay.get(k) || { uid:x.uid, date:new Date(dateKey(t)+'T00:00:00'), firstIn:null, lastOut:null, mins:0 };
+      if(x.type==='in'){ if(!item.firstIn || t<item.firstIn) item.firstIn=t; lastIn.set(k,t); }
+      if(x.type==='out'){ const li=lastIn.get(k); if(li){ item.mins += (t-li)/60000; lastIn.delete(k);} if(!item.lastOut || t>item.lastOut) item.lastOut=t; }
+      perDay.set(k,item);
+    });
+
+    const rows = Array.from(perDay.values()).map(v=>{
+      const nm=nameByUid.get(v.uid)?.full || nameByUid.get(v.uid)?.username || v.uid.slice(0,6);
+      return { uid:v.uid, name:nm, date:v.date, dateLabel:niceDate(v.date), in:v.firstIn?onlyHM(v.firstIn):'', out:v.lastOut?onlyHM(v.lastOut):'', mins:v.mins };
+    }).sort((a,b)=> a.name.localeCompare(b.name) || a.date - b.date);
     return rows;
   }
 
-  async function renderReportDoc(docu){
-    if(!docu){ reportRows.innerHTML=''; reportRange.textContent='No report found.'; return; }
-    const data = docu.data();
-    const start = data.start?.toDate ? data.start.toDate() : new Date(data.start);
-    const end   = data.end?.toDate ? data.end.toDate()   : new Date(data.end);
-    reportRange.textContent = `Period: ${start.toDateString()} – ${end.toDateString()}  (generated ${(data.generatedAt?.toDate?.() || new Date()).toLocaleString()})`;
-    reportRows.innerHTML='';
-    (data.rows||[]).forEach(r=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${r.name}</td><td>${r.username||''}</td><td class="right">${Number(r.hours).toFixed(2)}</td>`;
-      reportRows.appendChild(tr);
-    });
+  async function generateAndSaveCurrentBiweekly(){
+    const end = lastSaturdayEnd(new Date());
+    const start = periodStartFromEndSat(end);
+    const rows = await computeDailyRows(start,end);
+    await addDoc(collection(db,'reports'), { start: Timestamp.fromDate(start), end: Timestamp.fromDate(end), rows, generatedAt: serverTimestamp() });
+    await loadLatestReport(); await loadAllReports();
   }
 
   async function loadLatestReport(){
-    const q1 = query(collection(db,'reports'), orderBy('end','desc'), limit(1));
-    const s = await getDocs(q1);
-    if (s.empty) { reportRange.textContent = 'No saved report yet. Click "Generate Now".'; reportRows.innerHTML=''; return; }
+    const s = await getDocs(query(collection(db,'reports'), orderBy('end','desc'), limit(1)));
+    if(s.empty){ reportRows.innerHTML=''; reportRange.textContent='No saved report yet. Click "Generate Now".'; return; }
     await renderReportDoc(s.docs[0]);
   }
-
-  async function loadReportById(docId) {
-    const s = await getDoc(doc(db,'reports', docId));
-    if (s.exists()) await renderReportDoc(s);
+  async function renderReportDoc(docu){
+    const data=docu.data(); const start=data.start.toDate?data.start.toDate():new Date(data.start); const end=data.end.toDate?data.end.toDate():new Date(data.end);
+    reportRange.textContent = `Period: ${start.toDateString()} – ${end.toDateString()} (generated ${(data.generatedAt?.toDate?.()||new Date()).toLocaleString()})`;
+    const rows=(data.rows||[]).slice().sort((a,b)=> a.name.localeCompare(b.name) || new Date(a.date) - new Date(b.date));
+    reportRows.innerHTML='';
+    // render rows + weekly totals + period totals per employee
+    let curName=null, weekStart=null, weekMins=0, periodMins=0;
+    function flushWeek(name){ if(weekStart!==null){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Week total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(weekMins/60)}</strong></td>`; reportRows.appendChild(tr); weekStart=null; weekMins=0; } }
+    function flushPeriod(name){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Period total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(periodMins/60)}</strong></td>`; reportRows.appendChild(tr); periodMins=0; }
+    rows.forEach(r=>{
+      const d=new Date(r.date); const weekMon=new Date(d); const dow=d.getDay(); weekMon.setDate(d.getDate() - (dow===0?6:dow-1)); weekMon.setHours(0,0,0,0);
+      if(r.name!==curName){ if(curName){ flushWeek(curName); flushPeriod(curName); const sep=document.createElement('tr'); sep.innerHTML=`<td colspan="5" class="hint">—</td>`; reportRows.appendChild(sep); }
+        curName=r.name; weekStart=+weekMon; weekMins=0; periodMins=0;
+      }
+      if(+weekMon!==weekStart){ flushWeek(curName); weekStart=+weekMon; }
+      weekMins += r.mins; periodMins += r.mins;
+      const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.name}</td><td>${r.dateLabel}</td><td>${r.in||''}</td><td>${r.out||''}</td><td class="right">${fmt2(r.mins/60)}</td>`; reportRows.appendChild(tr);
+    });
+    if(curName){ flushWeek(curName); flushPeriod(curName); }
   }
-
-  async function loadAllReports() {
-    const q1 = query(collection(db,'reports'), orderBy('end','desc'));
-    const snap = await getDocs(q1);
-    reportList.innerHTML = '';
-    snap.forEach(d => {
-      const data = d.data();
-      const start = data.start?.toDate ? data.start.toDate() : new Date(data.start);
-      const end   = data.end?.toDate ? data.end.toDate()   : new Date(data.end);
-      const gen   = data.generatedAt?.toDate ? data.generatedAt.toDate() : null;
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${start.toDateString()}</td>
-        <td>${end.toDateString()}</td>
-        <td>${gen ? gen.toLocaleString() : '—'}</td>
-        <td class="right">
-          <button data-view="${d.id}" class="btn-ghost" style="height:32px;">View</button>
-          <button data-delreport="${d.id}" class="btn-danger" style="height:32px;">Delete</button>
-        </td>
-      `;
+  async function loadAllReports(){
+    const s=await getDocs(query(collection(db,'reports'), orderBy('end','desc')));
+    reportList.innerHTML=''; s.forEach(d=>{
+      const data=d.data(); const st=data.start.toDate?data.start.toDate():new Date(data.start); const en=data.end.toDate?data.end.toDate():new Date(data.end); const gen=data.generatedAt?.toDate?.();
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${st.toDateString()}</td><td>${en.toDateString()}</td><td>${gen?gen.toLocaleString():'—'}</td>
+      <td class="right"><button class="btn-ghost" data-view="${d.id}" style="height:32px;">View</button> <button class="btn-danger" data-delreport="${d.id}" style="height:32px;">Delete</button></td>`;
       reportList.appendChild(tr);
     });
-
-    reportList.querySelectorAll('[data-view]').forEach(btn => {
-      btn.addEventListener('click', () => loadReportById(btn.getAttribute('data-view')));
-    });
-    reportList.querySelectorAll('[data-delreport]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this report?')) return;
-        await deleteDoc(doc(db,'reports', btn.getAttribute('data-delreport')));
-        await loadAllReports();
-        await loadLatestReport();
-      });
-    });
+    reportList.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.getAttribute('data-view'); const s=await getDoc(doc(db,'reports', id)); if(s.exists()) await renderReportDoc(s); }));
+    reportList.querySelectorAll('[data-delreport]').forEach(b=>b.addEventListener('click', async ()=>{ if(!confirm('Delete this report?')) return; await deleteDoc(doc(db,'reports', b.getAttribute('data-delreport'))); await loadAllReports(); await loadLatestReport(); }));
   }
-
-  async function generateAndSaveCurrentBiweekly(){
-    const endSat = lastSaturdayEnd(new Date());
-    const start = periodStartFromEndSat(endSat);
-    const rows = await computeTotals(start,endSat);
-    const payload = { start: Timestamp.fromDate(start), end: Timestamp.fromDate(endSat), rows, generatedAt: serverTimestamp() };
-    await addDoc(collection(db,'reports'), payload);
-    await loadLatestReport();
-    await loadAllReports();
-  }
-
-  // Buttons
+  btnGenerateNow.addEventListener('click', generateAndSaveCurrentBiweekly);
   btnLoadLatest.addEventListener('click', loadLatestReport);
-  btnGenerateNow.addEventListener('click', async ()=>{ if(!state.isAdmin) return; await generateAndSaveCurrentBiweekly(); alert('Report generated.'); });
-  btnExportTotals.addEventListener('click', ()=>{ const headers=['Name','Username','Total Hours']; const lines=[headers.join(',')]; reportRows.querySelectorAll('tr').forEach(tr=>{ const t=tr.querySelectorAll('td'); if(t.length<3) return; lines.push([t[0].textContent,t[1].textContent,t[2].textContent].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')); }); const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='biweekly_totals.csv'; a.click(); });
 
-  // Export visible entries (daily)
-  btnExport.addEventListener('click', ()=>{ const headers=['#','name','username','type','when']; const lines=[headers.join(',')]; let i=1; rowsEl.querySelectorAll('tr').forEach(tr=>{ const t=tr.querySelectorAll('td'); if(t.length<5) return; const row=[i++,t[1].textContent,t[2].textContent,t[3].textContent,t[4].textContent]; lines.push(row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')); }); const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`timeclock_${dayInput.value}.csv`; a.click(); });
+  // Export CSV (current report view)
+  btnExportTotals.addEventListener('click', ()=>{
+    const lines=[]; lines.push(['Name','Date','Clock In','Clock Out','Daily Hours'].join(','));
+    let lastName='', weekStart=null, weekMins=0, periodMins=0;
+    const trs=[...reportRows.querySelectorAll('tr')];
+    trs.forEach(tr=>{
+      const t=[...tr.querySelectorAll('td')].map(x=>x.textContent.trim());
+      if(t[1]==='Week total' || t[1]==='Period total'){ lines.push(t.join(',')); return; }
+      if(t.length===5){ // normal row
+        lines.push(t.map(v=>`"${v.replace(/"/g,'""')}"`).join(','));
+      }
+    });
+    // (rows already include totals; no extra work)
+    const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='biweekly_detailed.csv'; a.click();
+  });
+
+  // Export CSV (Entries view – same columns)
+  btnExport.addEventListener('click', ()=>{
+    const headers=['Name','Date','Clock In','Clock Out','Day']; const lines=[headers.join(',')];
+    entryRows.querySelectorAll('tr').forEach(tr=>{
+      const t=[...tr.querySelectorAll('td')].slice(0,5).map(td=>td.textContent.trim());
+      if(t.length===5) lines.push(t.map(v=>`"${v.replace(/"/g,'""')}"`).join(','));
+    });
+    const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='entries_current_period.csv'; a.click();
+  });
 </script>
 </body>
 </html>
