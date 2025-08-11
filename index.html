@@ -5,46 +5,33 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>TimeClock — Desktop Only</title>
 <style>
-  :root {
-    --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb;
-    --accent:#22c55e; --accent2:#3b82f6; --warn:#f59e0b; --danger:#ef4444; --border:#1f2937;
-  }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-         background:linear-gradient(120deg,#0b1023,#0f172a 35%,#0b1023); color:var(--text); }
+  :root { --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; --accent2:#3b82f6; --warn:#f59e0b; --danger:#ef4444; --border:#1f2937; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:linear-gradient(120deg,#0b1023,#0f172a 35%,#0b1023); color:var(--text); }
   header { padding:18px 16px; display:flex; gap:14px; align-items:center; justify-content:space-between; max-width:1100px; margin:0 auto; }
-  header h1 { margin:0; font-size:18px; letter-spacing:.3px; font-weight:700; }
+  header h1 { margin:0; font-size:18px; font-weight:700; }
   .container { max-width:1100px; margin:0 auto; padding:0 16px 40px; display:grid; grid-template-columns: 1.1fr .9fr; gap:18px; }
-  @media (max-width: 980px){ .container{ grid-template-columns: 1fr; } }
-  .card { background: rgba(17,24,39,.75); backdrop-filter: blur(8px); border:1px solid var(--border); border-radius:14px; padding:16px; }
+  @media (max-width:980px){ .container{ grid-template-columns:1fr; } }
+  .card { background:rgba(17,24,39,.75); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:14px; padding:16px; }
   .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   label { font-size:12px; color:var(--muted); }
-  input, select { background:#0b1220; border:1px solid var(--border); color:var(--text); border-radius:10px; height:40px; padding:0 12px; outline:none; }
+  input,select { background:#0b1220; border:1px solid var(--border); color:var(--text); border-radius:10px; height:40px; padding:0 12px; outline:none; }
   input::placeholder { color:#70809a; }
   button { height:40px; padding:0 14px; border-radius:10px; border:1px solid transparent; color:white; font-weight:600; cursor:pointer; }
   button:disabled { opacity:.55; cursor:not-allowed; }
-  .btn-primary { background:var(--accent2); }
-  .btn-go { background:var(--accent); }
-  .btn-warn { background:var(--warn); color:#111; }
-  .btn-danger { background:var(--danger); }
-  .btn-ghost { background:transparent; border-color:#2a364a; color:#c7d2fe; }
-  .pill { padding:6px 10px; border-radius:999px; background:#0b1220; border:1px solid var(--border); color:var(--muted); font-size:12px; }
-  .stat { display:flex; flex-direction:column; gap:4px; padding:10px 12px; border:1px dashed #253048; border-radius:12px; min-width:140px; }
-  .stat .k { font-size:18px; font-weight:700; }
-  .stat .t { font-size:11px; color:var(--muted); letter-spacing:.2px; }
-  table { width:100%; border-collapse:collapse; }
-  th, td { border-bottom:1px solid #1c2640; padding:10px 8px; text-align:left; font-size:14px; }
-  th { color:#aab3c6; font-weight:700; letter-spacing:.3px; font-size:12px; text-transform:uppercase; }
-  td input[type="datetime-local"] { width:100%; height:34px; padding:0 6px; }
-  .right { text-align:right; }
-  .grow { flex:1; }
-  .hint { font-size:12px; color:var(--muted); }
-  .footer { padding:12px 16px; color:#9aa6bf; font-size:12px; text-align:center; }
-  .tabs { display:flex; gap:6px; margin-bottom:10px; }
-  .tab { background:#0b1220; border:1px solid var(--border); border-radius:999px; padding:6px 12px; cursor:pointer; color:#cbd5e1; }
-  .tab.active { background:#1a2338; color:#fff; }
-  .hidden { display:none !important; }
-  .badge { font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2a364a; color:#9aa6bf; }
+  .btn-primary{ background:var(--accent2); } .btn-go{ background:var(--accent); } .btn-warn{ background:var(--warn); color:#111; } .btn-danger{ background:var(--danger); }
+  .btn-ghost{ background:transparent; border-color:#2a364a; color:#c7d2fe; }
+  .pill{ padding:6px 10px; border-radius:999px; background:#0b1220; border:1px solid var(--border); color:var(--muted); font-size:12px; }
+  .stat{ display:flex; flex-direction:column; gap:4px; padding:10px 12px; border:1px dashed #253048; border-radius:12px; min-width:140px; }
+  .stat .k{ font-size:18px; font-weight:700; } .stat .t{ font-size:11px; color:var(--muted); }
+  table{ width:100%; border-collapse:collapse; } th,td{ border-bottom:1px solid #1c2640; padding:10px 8px; text-align:left; font-size:14px; }
+  th{ color:#aab3c6; font-weight:700; font-size:12px; text-transform:uppercase; }
+  .right{ text-align:right; } .grow{ flex:1; } .hint{ font-size:12px; color:var(--muted); }
+  .footer{ padding:12px 16px; color:#9aa6bf; font-size:12px; text-align:center; }
+  .tabs{ display:flex; gap:6px; margin-bottom:10px; } .tab{ background:#0b1220; border:1px solid var(--border); border-radius:999px; padding:6px 12px; cursor:pointer; color:#cbd5e1; }
+  .tab.active{ background:#1a2338; color:#fff; }
+  .hidden{ display:none !important; }
+  .badge{ font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2a364a; color:#9aa6bf; }
 </style>
 </head>
 <body>
@@ -76,15 +63,9 @@
         <label for="siPass">Password</label>
         <input id="siPass" type="password" placeholder="••••••••" />
       </div>
-      <div>
-        <label>&nbsp;</label>
-        <button id="btnSignIn" class="btn-primary">Sign In</button>
-      </div>
+      <div><label>&nbsp;</label><button id="btnSignIn" class="btn-primary">Sign In</button></div>
       <div class="grow"></div>
-      <div>
-        <label>&nbsp;</label>
-        <button id="btnReset" class="btn-ghost">Forgot password?</button>
-      </div>
+      <div><label>&nbsp;</label><button id="btnReset" class="btn-ghost">Forgot password?</button></div>
       <div class="grow"></div>
       <div id="siMsg" class="hint"></div>
     </div>
@@ -110,10 +91,7 @@
         <label for="suPass">Password</label>
         <input id="suPass" type="password" placeholder="At least 8 characters" />
       </div>
-      <div>
-        <label>&nbsp;</label>
-        <button id="btnSignUp" class="btn-primary">Create account</button>
-      </div>
+      <div><label>&nbsp;</label><button id="btnSignUp" class="btn-primary">Create account</button></div>
       <div class="grow"></div>
       <div id="suMsg" class="hint"></div>
     </div>
@@ -136,20 +114,11 @@
     </div>
 
     <div class="row" style="gap:12px; margin:12px 0 2px;">
-      <div class="stat">
-        <div class="k" id="status">Not clocked in</div>
-        <div class="t">Current status</div>
-      </div>
-      <div class="stat">
-        <div class="k" id="since">—</div>
-        <div class="t">Since</div>
-      </div>
-      <div class="stat">
-        <div class="k" id="todayTotal">0h 00m</div>
-        <div class="t">Today total</div>
-      </div>
+      <div class="stat"><div class="k" id="status">Not clocked in</div><div class="t">Current status</div></div>
+      <div class="stat"><div class="k" id="since">—</div><div class="t">Since</div></div>
+      <div class="stat"><div class="k" id="todayTotal">0h 00m</div><div class="t">Today total</div></div>
       <div class="grow"></div>
-      <button id="btnIn"  class="btn-go">Clock In</button>
+      <button id="btnIn" class="btn-go">Clock In</button>
       <button id="btnOut" class="btn-warn" disabled>Clock Out</button>
     </div>
     <div id="geoMsg" class="hint"></div>
@@ -158,18 +127,9 @@
   <!-- Right: Day selector -->
   <aside class="card">
     <div class="row" style="gap:8px;">
-      <div class="grow">
-        <label for="day">View day</label>
-        <input type="date" id="day" />
-      </div>
-      <div class="grow">
-        <label>&nbsp;</label>
-        <button id="btnAddManual" class="btn-ghost hidden">Add Manual Pair</button>
-      </div>
-      <div>
-        <label>&nbsp;</label>
-        <button id="btnDeleteDay" class="btn-danger hidden">Delete Day’s Entries</button>
-      </div>
+      <div class="grow"><label for="day">View day</label><input type="date" id="day" /></div>
+      <div class="grow"><label>&nbsp;</label><button id="btnAddManual" class="btn-ghost hidden">Add Manual Pair</button></div>
+      <div><label>&nbsp;</label><button id="btnDeleteDay" class="btn-danger hidden">Delete Day’s Entries</button></div>
     </div>
     <div class="hint" style="margin-top:8px;">Admins can edit times directly in the table. Staff cannot.</div>
   </aside>
@@ -181,16 +141,7 @@
       <span class="pill" id="activeTz">Timezone: —</span>
     </div>
     <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Name</th>
-          <th>User</th>
-          <th>Type</th>
-          <th>When</th>
-          <th class="right">Actions</th>
-        </tr>
-      </thead>
+      <thead><tr><th>#</th><th>Name</th><th>User</th><th>Type</th><th>When</th><th class="right">Actions</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
   </section>
@@ -206,53 +157,57 @@
     <!-- Staff -->
     <div id="admin-staff">
       <table>
-        <thead>
-          <tr><th>First</th><th>Last</th><th>Username</th><th>Email</th><th>Status</th><th class="right">Actions</th></tr>
-        </thead>
+        <thead><tr><th>First</th><th>Last</th><th>Username</th><th>Email</th><th>Status</th><th class="right">Actions</th></tr></thead>
         <tbody id="staffRows"></tbody>
       </table>
     </div>
 
-    <!-- Punches (same table; use day filter above) -->
+    <!-- Punches tab (info only) -->
     <div id="admin-punches" class="hidden">
-      <div class="hint">Use the main "Entries" table and date picker above. Click a timestamp cell to edit, Enter to save.</div>
+      <div class="hint">Use the main "Entries" table and date picker above. Click a timestamp to edit and press Enter.</div>
     </div>
 
     <!-- Reports -->
     <div id="admin-reports" class="hidden">
       <div class="row" style="gap:10px; margin-bottom:10px;">
-        <button id="btnPrev2Weeks" class="btn-primary">Load Previous 2 Weeks</button>
+        <button id="btnLoadLatest" class="btn-primary">Load Latest Report</button>
+        <button id="btnGenerateNow" class="btn-ghost">Generate Now (biweekly Mon–Sat)</button>
         <button id="btnExportTotals" class="btn-ghost">Export CSV</button>
       </div>
+      <div class="hint" id="reportRange"></div>
       <table>
         <thead><tr><th>Name</th><th>Username</th><th class="right">Total Hours</th></tr></thead>
         <tbody id="reportRows"></tbody>
       </table>
-      <div class="hint">This table shows totals by employee for the last two completed weeks (Mon–Sun). For automatic emails, see the Cloud Function step below.</div>
+
+      <h4 style="margin:16px 0 6px;">Saved reports</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Start</th>
+            <th>End</th>
+            <th>Generated</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="reportList"></tbody>
+      </table>
     </div>
   </section>
 </div>
 
-<div class="footer">Desktop-only. Data stored in Firebase. </div>
+<div class="footer">Desktop-only. Data stored in Firebase.</div>
 
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-  import {
-    getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
-    signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile
-  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-  import {
-    getFirestore, doc, setDoc, getDoc, addDoc, collection, query, where,
-    onSnapshot, getDocs, serverTimestamp, updateDoc, deleteDoc, orderBy, limit,
-    Timestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, addDoc, collection, query, where, onSnapshot, getDocs, serverTimestamp, updateDoc, deleteDoc, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  // ========= Feature flags =========
-  const GEOFENCE_ENABLED = false;          // Off (home office allowed)
-  const ENFORCE_DESKTOP_ONLY = true;       // Block phones/tablets
+  // ===== Feature flags =====
+  const ENFORCE_DESKTOP_ONLY = true; // block phones/tablets
 
-  // ========= Your Firebase config =========
+  // ===== Your Firebase config =====
   const firebaseConfig = {
     apiKey: "AIzaSyCAi1zcDsdprr78A5RdYiOhz6Xn8Oiz54s",
     authDomain: "timeclock-15ac7.firebaseapp.com",
@@ -263,501 +218,272 @@
     measurementId: "G-RTW4RDNZHC"
   };
 
-  // ========= Init =========
+  // ===== Init =====
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // ========= Helpers =========
+  // ===== Helpers =====
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const pad2 = n => String(n).padStart(2,'0');
   const fmtHM = mins => `${Math.floor(mins/60)}h ${pad2(Math.round(mins%60))}m`;
-  const fmtHours = mins => (Math.round((mins/60)*100)/100).toFixed(2); // 2 decimals
-  const toLocalInput = ts => {
-    if (!ts) return '';
-    const d = ts instanceof Date ? ts : new Date(ts);
-    const y = d.getFullYear(), mo = pad2(d.getMonth()+1), da = pad2(d.getDate());
-    const hh = pad2(d.getHours()), mm = pad2(d.getMinutes());
-    return `${y}-${mo}-${da}T${hh}:${mm}`;
-  };
-  const fromLocalInput = v => {
-    if (!v) return null;
-    const d = new Date(v);
-    return Number.isNaN(d.getTime()) ? null : d;
-  };
+  const fmtHours = mins => (Math.round((mins/60)*100)/100).toFixed(2);
+  const toLocalInput = ts => { if (!ts) return ''; const d = ts instanceof Date ? ts : new Date(ts); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+  const fromLocalInput = v => { if (!v) return null; const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d; };
   const todayISO = () => new Date().toISOString().slice(0,10);
   const show = (el, visible=true) => el.classList.toggle('hidden', !visible);
   const fullNameOf = u => [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
 
   function isBlockedMobileOrTablet() {
+    if (!ENFORCE_DESKTOP_ONLY) return false;
     const ua = (navigator.userAgent || '').toLowerCase();
     const isMobileUA = /android|iphone|ipad|ipod|iemobile|blackberry|opera mini/.test(ua);
     const touch = (navigator.maxTouchPoints || 0) > 0;
     const smallScreen = Math.min(window.screen.width, window.screen.height) < 800;
     const platform = (navigator.platform || '').toLowerCase();
     const iPadDesktopMode = platform.includes('mac') && touch;
-    return ENFORCE_DESKTOP_ONLY && (isMobileUA || iPadDesktopMode || (touch && smallScreen));
+    return isMobileUA || iPadDesktopMode || (touch && smallScreen);
   }
-
   if (isBlockedMobileOrTablet()) {
-    document.body.innerHTML = `
-      <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0f172a; color:#e5e7eb; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;">
-        <div style="max-width:560px; background:#111827; border:1px solid #1f2937; border-radius:12px; padding:20px;">
-          <h2 style="margin:0 0 8px;">Desktop Required</h2>
-          <p style="margin:8px 0 0; color:#cbd5e1;">Please use a desktop or laptop computer to access the time clock.</p>
-        </div>
-      </div>`;
+    document.body.innerHTML = `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0f172a; color:#e5e7eb; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;"><div style="max-width:560px; background:#111827; border:1px solid #1f2937; border-radius:12px; padding:20px;"><h2 style="margin:0 0 8px;">Desktop Required</h2><p style="margin:8px 0 0; color:#cbd5e1;">Please use a desktop or laptop computer to access the time clock.</p></div></div>`;
     throw new Error('Blocked on mobile/tablet');
   }
 
-  // Clock
-  const nowEl = $('#now');
-  setInterval(() => { nowEl.textContent = new Date().toLocaleString(); }, 1000);
+  // Clock & basic UI refs
+  const nowEl = $('#now'); setInterval(()=>{ nowEl.textContent = new Date().toLocaleString(); },1000);
+  $$('.tab[data-tab]').forEach(btn => btn.addEventListener('click', () => { $$('.tab[data-tab]').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); show($('#signin'),btn.dataset.tab==='signin'); show($('#signup'),btn.dataset.tab==='signup'); }));
+  $$('.tab[data-admin-tab]').forEach(btn => btn.addEventListener('click', () => { $$('.tab[data-admin-tab]').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); show($('#admin-staff'),btn.dataset.adminTab==='staff'); show($('#admin-punches'),btn.dataset.adminTab==='punches'); show($('#admin-reports'),btn.dataset.adminTab==='reports'); if(btn.dataset.adminTab==='reports'){ loadLatestReport(); loadAllReports(); } }));
 
-  // Tabs (auth)
-  $$('.tab[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $$('.tab[data-tab]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      show($('#signin'), btn.dataset.tab === 'signin');
-      show($('#signup'), btn.dataset.tab === 'signup');
-    });
-  });
+  const siEmail=$('#siEmail'), siPass=$('#siPass'), siMsg=$('#siMsg');
+  const suFirst=$('#suFirst'), suLast=$('#suLast'), suUsername=$('#suUsername'), suEmail=$('#suEmail'), suPass=$('#suPass'), suMsg=$('#suMsg');
+  const btnSignIn=$('#btnSignIn'), btnReset=$('#btnReset'), btnSignUp=$('#btnSignUp');
+  const btnSignOut=$('#btnSignOut'), btnExport=$('#btnExport');
+  const welcome=$('#welcome'), roleBadge=$('#roleBadge'), activeBadge=$('#activeBadge');
+  const statusEl=$('#status'), sinceEl=$('#since'), todayTotalEl=$('#todayTotal');
+  const btnIn=$('#btnIn'), btnOut=$('#btnOut'), geoMsg=$('#geoMsg');
+  const dayInput=$('#day'), rowsEl=$('#rows'), tzEl=$('#activeTz');
+  const adminSection=$('#admin'), staffRows=$('#staffRows');
+  const btnAddManual=$('#btnAddManual'), btnDeleteDay=$('#btnDeleteDay');
 
-  // Admin panel tabs
-  $$('.tab[data-admin-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $$('.tab[data-admin-tab]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      show($('#admin-staff'), btn.dataset.adminTab === 'staff');
-      show($('#admin-punches'), btn.dataset.adminTab === 'punches');
-      show($('#admin-reports'), btn.dataset.adminTab === 'reports');
-    });
-  });
-
-  // UI elements
-  const siEmail = $('#siEmail'), siPass = $('#siPass'), siMsg = $('#siMsg');
-  const suUsername = $('#suUsername'), suEmail = $('#suEmail'), suPass = $('#suPass'), suMsg = $('#suMsg');
-  const suFirst = $('#suFirst'), suLast = $('#suLast');
-  const btnSignIn = $('#btnSignIn'), btnReset = $('#btnReset'), btnSignUp = $('#btnSignUp');
-  const btnSignOut = $('#btnSignOut'), btnExport = $('#btnExport');
-  const welcome = $('#welcome'), roleBadge = $('#roleBadge'), activeBadge = $('#activeBadge');
-  const statusEl = $('#status'), sinceEl = $('#since'), todayTotalEl = $('#todayTotal');
-  const btnIn = $('#btnIn'), btnOut = $('#btnOut'), geoMsg = $('#geoMsg');
-  const dayInput = $('#day'), rowsEl = $('#rows'), tzEl = $('#activeTz');
-  const adminSection = $('#admin'), staffRows = $('#staffRows');
-  const btnAddManual = $('#btnAddManual'), btnDeleteDay = $('#btnDeleteDay');
-  const reportRows = $('#reportRows'), btnPrev2Weeks = $('#btnPrev2Weeks'), btnExportTotals = $('#btnExportTotals');
+  const reportRows=$('#reportRows'), reportRange=$('#reportRange'), btnLoadLatest=$('#btnLoadLatest'), btnGenerateNow=$('#btnGenerateNow'), btnExportTotals=$('#btnExportTotals');
+  const reportList = $('#reportList');
 
   tzEl.textContent = 'Timezone: ' + Intl.DateTimeFormat().resolvedOptions().timeZone;
   dayInput.value = todayISO();
 
-  // State
-  let state = { user:null, isAdmin:false, me:null, currentStatus:'out', usersCache: new Map() };
+  let state = { user:null, isAdmin:false, me:null, currentStatus:'out', usersCache:new Map() };
 
-  // ======== AUTH ========
-  function validUsername(u) { return /^[a-z0-9_]{3,20}$/.test(u || ''); }
+  function validUsername(u){ return /^[a-z0-9_]{3,20}$/.test(u||''); }
+  async function resolveLoginIdentifier(idOrUsername){ if(!idOrUsername) throw new Error('Enter email or username.'); if(idOrUsername.includes('@')) return idOrUsername.trim().toLowerCase(); const uname=idOrUsername.trim().toLowerCase(); const snap=await getDoc(doc(db,'usernames',uname)); if(!snap.exists()) throw new Error('Username not found.'); const data=snap.data(); if(!data.email) throw new Error('Username has no email.'); return String(data.email).toLowerCase(); }
 
-  async function resolveLoginIdentifier(idOrUsername) {
-    if (!idOrUsername) throw new Error('Enter email or username.');
-    if (idOrUsername.includes('@')) return idOrUsername.trim().toLowerCase();
-    const uname = idOrUsername.trim().toLowerCase();
-    const snap = await getDoc(doc(db,'usernames', uname));
-    if (!snap.exists()) throw new Error('Username not found.');
-    const data = snap.data();
-    if (!data.email) throw new Error('Username has no email on record.');
-    return String(data.email).toLowerCase();
-  }
+  btnSignIn.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await signInWithEmailAndPassword(auth,email,siPass.value);}catch(e){ siMsg.textContent='Sign-in failed: ' + e.message; }});
+  btnReset.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await sendPasswordResetEmail(auth,email); siMsg.textContent='Reset email sent if the account exists.';}catch(e){ siMsg.textContent='Password reset failed: ' + e.message; }});
+  btnSignUp.addEventListener('click', async ()=>{ suMsg.textContent=''; try{
+      const firstName=suFirst.value.trim(), lastName=suLast.value.trim(); if(!firstName||!lastName) throw new Error('Enter first and last name.');
+      const username=suUsername.value.trim().toLowerCase(); if(!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/_');
+      const email=suEmail.value.trim().toLowerCase(); const pass=suPass.value; if(pass.length<8) throw new Error('Password must be at least 8 characters.');
+      const exists=await getDoc(doc(db,'usernames',username)); if(exists.exists()) throw new Error('Username is taken.');
+      const cred=await createUserWithEmailAndPassword(auth,email,pass); await updateProfile(cred.user,{displayName:username});
+      await setDoc(doc(db,'users',cred.user.uid),{ username,email,firstName,lastName,role:'staff',active:false,createdAt:serverTimestamp() });
+      await setDoc(doc(db,'usernames',username),{ uid:cred.user.uid, email });
+      suMsg.textContent='Account created. Admin must activate your account.';
+    }catch(e){ suMsg.textContent='Sign-up failed: ' + e.message; }});
 
-  btnSignIn.addEventListener('click', async () => {
-    siMsg.textContent = '';
-    try {
-      const email = await resolveLoginIdentifier(siEmail.value);
-      await signInWithEmailAndPassword(auth, email, siPass.value);
-      siMsg.textContent = '';
-    } catch (e) { siMsg.textContent = 'Sign-in failed: ' + e.message; }
-  });
+  btnSignOut.addEventListener('click', async ()=>{ await signOut(auth); });
 
-  btnReset.addEventListener('click', async () => {
-    siMsg.textContent = '';
-    try {
-      const email = await resolveLoginIdentifier(siEmail.value);
-      await sendPasswordResetEmail(auth, email);
-      siMsg.textContent = 'Reset email sent if the account exists.';
-    } catch (e) { siMsg.textContent = 'Password reset failed: ' + e.message; }
-  });
+  async function checkAdmin(uid){ const snap=await getDoc(doc(db,'admins',uid)); return snap.exists(); }
+  async function ensureUserDoc(user){ const ref=doc(db,'users',user.uid); const snap=await getDoc(ref); if(!snap.exists()) await setDoc(ref,{ username:user.displayName||'', email:user.email, role:'staff', active:false, createdAt:serverTimestamp() }); const data=(await getDoc(ref)).data(); state.usersCache.set(user.uid,data); return data; }
 
-  btnSignUp.addEventListener('click', async () => {
-    suMsg.textContent = '';
-    try {
-      const firstName = suFirst.value.trim(); const lastName = suLast.value.trim();
-      if (!firstName || !lastName) throw new Error('Enter first and last name.');
-      const username = suUsername.value.trim().toLowerCase();
-      if (!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/_');
-      const email = suEmail.value.trim().toLowerCase();
-      const pass = suPass.value;
-      if (pass.length < 8) throw new Error('Password must be at least 8 characters.');
+  function renderAuth(signed){ show($('#auth'),!signed); show($('#app'),!!signed); show(btnSignOut,!!signed); show(btnExport,!!signed && state.isAdmin); }
 
-      const exists = await getDoc(doc(db,'usernames', username));
-      if (exists.exists()) throw new Error('Username is taken. Choose another.');
-
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(cred.user, { displayName: username });
-
-      await setDoc(doc(db,'users', cred.user.uid), {
-        username, email, firstName, lastName, role: 'staff', active: false, createdAt: serverTimestamp()
-      });
-
-      await setDoc(doc(db,'usernames', username), { uid: cred.user.uid, email });
-
-      suMsg.textContent = 'Account created. An admin must activate your account before you can clock in.';
-    } catch (e) { suMsg.textContent = 'Sign-up failed: ' + e.message; }
-  });
-
-  btnSignOut.addEventListener('click', async () => { await signOut(auth); });
-
-  // ======== LOAD USER ========
-  async function checkAdmin(uid) {
-    const snap = await getDoc(doc(db,'admins', uid));
-    return snap.exists();
-  }
-
-  async function ensureUserDoc(user) {
-    const ref = doc(db,'users', user.uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      await setDoc(ref, { username: user.displayName || '', email: user.email, role: 'staff', active: false, createdAt: serverTimestamp() });
-    }
-    const data = (await getDoc(ref)).data();
-    state.usersCache.set(user.uid, data);
-    return data;
-  }
-
-  function renderAuth(stateful) {
-    show($('#auth'), !stateful);
-    show($('#app'), !!stateful);
-    show(btnSignOut, !!stateful);
-    show(btnExport, !!stateful && state.isAdmin);
-  }
-
-  onAuthStateChanged(auth, async (user) => {
-    state.user = user || null;
-    if (!user) { renderAuth(false); return; }
-
-    state.isAdmin = await checkAdmin(user.uid);
-    state.me = await ensureUserDoc(user);
-
-    welcome.textContent = `Welcome, ${fullNameOf(state.me) || state.me?.username || user.email}`;
-    show(roleBadge, state.isAdmin);
-    show(activeBadge, !state.me?.active);
-    $('#clockHint').textContent = 'Clocking is allowed from approved desktop/laptop only.';
+  onAuthStateChanged(auth, async (user)=>{ state.user=user||null; if(!user){ renderAuth(false); return; }
+    state.isAdmin=await checkAdmin(user.uid); state.me=await ensureUserDoc(user);
+    welcome.textContent=`Welcome, ${fullNameOf(state.me)||state.me?.username||user.email}`; show(roleBadge,state.isAdmin); show(activeBadge,!state.me?.active);
     renderAuth(true);
-
-    // Admin UI
-    show(btnAddManual, state.isAdmin);
-    show(btnDeleteDay, state.isAdmin);
-    show(adminSection, state.isAdmin);
-
-    const canPunch = state.isAdmin || !!state.me?.active;
-    btnIn.disabled = !canPunch;
-    btnOut.disabled = true;
-
+    show(btnAddManual,state.isAdmin); show(btnDeleteDay,state.isAdmin); show(adminSection,state.isAdmin);
+    const canPunch=state.isAdmin||!!state.me?.active; btnIn.disabled=!canPunch; btnOut.disabled=true;
     subscribeToday();
-    if (state.isAdmin) { loadStaff(); }
+    if(state.isAdmin){ loadStaff(); loadLatestReport(); loadAllReports(); }
   });
 
-  // ======== CLOCK ========
-  async function lastPunch(uid) {
-    const q1 = query(collection(db,'punches'), where('uid','==',uid), orderBy('ts','desc'), limit(1));
-    const s = await getDocs(q1);
-    return s.empty ? null : { id: s.docs[0].id, ...s.docs[0].data() };
-  }
+  // ===== Clock / punches =====
+  async function lastPunch(uid){ const q1=query(collection(db,'punches'), where('uid','==',uid), orderBy('ts','desc'), limit(1)); const s=await getDocs(q1); return s.empty?null:{ id:s.docs[0].id, ...s.docs[0].data() }; }
+  async function recomputeStatus(){ const last=await lastPunch(state.user.uid); if(!last || last.type==='out'){ state.currentStatus='out'; statusEl.textContent='Not clocked in'; btnIn.disabled=!(state.isAdmin||state.me?.active); btnOut.disabled=true; sinceEl.textContent='—'; } else { state.currentStatus='in'; statusEl.textContent='Clocked in'; btnIn.disabled=true; btnOut.disabled=false; sinceEl.textContent=(last.ts?.toDate?.()||new Date()).toLocaleString(); } }
+  async function doPunch(type){ geoMsg.textContent=''; try{
+      const me=state.me||{}; await addDoc(collection(db,'punches'),{ uid:state.user.uid, username:me.username||state.user.email, fullName: fullNameOf(me)||'', type, ts:serverTimestamp(), ua:navigator.userAgent||'', screen:{w:screen.width,h:screen.height}, source:'desktop' });
+      geoMsg.textContent='Recorded ✓'; await recomputeStatus();
+    }catch(e){ geoMsg.textContent='Error: ' + e.message; } }
+  btnIn.addEventListener('click', ()=>doPunch('in')); btnOut.addEventListener('click', ()=>doPunch('out'));
 
-  async function recomputeStatus() {
-    const last = await lastPunch(state.user.uid);
-    if (!last || last.type === 'out') {
-      state.currentStatus = 'out';
-      statusEl.textContent = 'Not clocked in';
-      btnIn.disabled = !(state.isAdmin || state.me?.active);
-      btnOut.disabled = true;
-      sinceEl.textContent = '—';
-    } else {
-      state.currentStatus = 'in';
-      statusEl.textContent = 'Clocked in';
-      btnIn.disabled = true;
-      btnOut.disabled = false;
-      sinceEl.textContent = (last.ts?.toDate?.() || new Date()).toLocaleString();
-    }
-  }
-
-  async function doPunch(type) {
-    geoMsg.textContent = '';
-    try {
-      // No geofence now; still record device info
-      const me = state.me || {};
-      await addDoc(collection(db,'punches'), {
-        uid: state.user.uid,
-        username: me.username || state.user.email,
-        fullName: fullNameOf(me) || '',
-        type, ts: serverTimestamp(),
-        ua: navigator.userAgent || '',
-        screen: { w: window.screen.width, h: window.screen.height },
-        source: 'desktop'
-      });
-      geoMsg.textContent = 'Recorded ✓';
-      await recomputeStatus();
-    } catch (e) { geoMsg.textContent = 'Error: ' + e.message; }
-  }
-
-  btnIn.addEventListener('click', () => doPunch('in'));
-  btnOut.addEventListener('click', () => doPunch('out'));
-
-  // ======== TODAY VIEW ========
-  let unsubToday = null;
-  function subscribeToday() {
-    if (unsubToday) unsubToday();
-    const theDay = dayInput.value || todayISO();
-    const start = new Date(theDay + 'T00:00:00');
-    const end = new Date(theDay + 'T23:59:59');
-
-    const q1 = query(collection(db,'punches'), orderBy('ts','asc'));
-    unsubToday = onSnapshot(q1, snap => {
-      const rows = [];
-      let idx = 1, minsToday = 0;
-      rowsEl.innerHTML = '';
-      const all = [];
-      snap.forEach(d => {
-        const data = d.data();
-        if (!data.ts?.toDate) return;
-        const when = data.ts.toDate();
-        if (when < start || when > end) return;
-        if (!state.isAdmin && data.uid !== state.user.uid) return;
-        all.push({ id:d.id, ...data });
-      });
-
-      all.sort((a,b) => a.ts.toMillis() - b.ts.toMillis()).forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${idx++}</td>
-          <td>${r.fullName || ''}</td>
-          <td>${r.username || r.uid?.slice(0,6) || ''}</td>
-          <td>${r.type}</td>
-          <td data-edit="ts" data-id="${r.id}">${toLocalInput(r.ts?.toDate?.())}</td>
-          <td class="right">${state.isAdmin ? `<button data-del="${r.id}" class="btn-danger" style="height:32px;">Delete</button>` : ''}</td>
-        `;
-        rowsEl.appendChild(tr);
-      });
-
-      // Mine only for "today total"
-      const onlyMine = all.filter(r => r.uid === state.user.uid);
-      let lastIn = null;
-      onlyMine.forEach(r => {
-        if (r.type === 'in') lastIn = r.ts?.toDate?.() || null;
-        if (r.type === 'out' && lastIn) {
-          minsToday += (r.ts.toDate() - lastIn)/60000;
-          lastIn = null;
-        }
-      });
-      todayTotalEl.textContent = fmtHM(minsToday);
-
-      if (state.isAdmin) {
-        rowsEl.querySelectorAll('[data-del]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            if (!confirm('Delete this punch?')) return;
-            await deleteDoc(doc(db,'punches', btn.getAttribute('data-del')));
-          });
-        });
-        rowsEl.querySelectorAll('[data-edit="ts"]').forEach(cell => {
-          cell.contentEditable = true;
-          cell.addEventListener('keydown', async (e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              const val = cell.textContent.trim();
-              const d = fromLocalInput(val);
-              if (!d) { alert('Invalid date/time format.'); return; }
-              await updateDoc(doc(db,'punches', cell.getAttribute('data-id')), { ts: Timestamp.fromDate(d) });
-              cell.blur();
-            }
-          });
-        });
+  // Today view
+  let unsubToday=null; function subscribeToday(){ if(unsubToday) unsubToday(); const d=dayInput.value||todayISO(); const start=new Date(d+'T00:00:00'); const end=new Date(d+'T23:59:59');
+    const q1=query(collection(db,'punches'), orderBy('ts','asc'));
+    unsubToday=onSnapshot(q1, snap => {
+      const all=[]; rowsEl.innerHTML=''; let idx=1, mins=0;
+      snap.forEach(docu=>{ const data=docu.data(); if(!data.ts?.toDate) return; const when=data.ts.toDate(); if(when<start||when>end) return; if(!state.isAdmin && data.uid!==state.user.uid) return; all.push({ id:docu.id, ...data }); });
+      all.sort((a,b)=>a.ts.toMillis()-b.ts.toMillis()).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${idx++}</td><td>${r.fullName||''}</td><td>${r.username||r.uid?.slice(0,6)||''}</td><td>${r.type}</td><td data-edit="ts" data-id="${r.id}">${toLocalInput(r.ts?.toDate?.())}</td><td class="right">${state.isAdmin?`<button data-del="${r.id}" class="btn-danger" style="height:32px;">Delete</button>`:''}</td>`; rowsEl.appendChild(tr); });
+      const mine=all.filter(r=>r.uid===state.user.uid); let lastIn=null; mine.forEach(r=>{ if(r.type==='in') lastIn=r.ts?.toDate?.()||null; if(r.type==='out'&&lastIn){ mins+=(r.ts.toDate()-lastIn)/60000; lastIn=null; } }); todayTotalEl.textContent=fmtHM(mins);
+      if(state.isAdmin){
+        rowsEl.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{ if(!confirm('Delete this punch?'))return; await deleteDoc(doc(db,'punches',b.getAttribute('data-del'))); }));
+        rowsEl.querySelectorAll('[data-edit="ts"]').forEach(cell=>{ cell.contentEditable=true; cell.addEventListener('keydown', async e=>{ if(e.key==='Enter'){ e.preventDefault(); const val=cell.textContent.trim(); const dt=fromLocalInput(val); if(!dt){ alert('Invalid date/time'); return; } await updateDoc(doc(db,'punches',cell.getAttribute('data-id')), { ts: Timestamp.fromDate(dt) }); cell.blur(); } });});
       }
       recomputeStatus();
     });
   }
   dayInput.addEventListener('change', subscribeToday);
 
-  // ======== ADMIN: MANUAL / DELETE DAY ========
-  btnAddManual.addEventListener('click', async () => {
-    if (!state.isAdmin) return;
-    const who = prompt('Enter username or email for manual entry:');
-    if (!who) return;
-    let user = null;
-    if (who.includes('@')) {
-      const qs = await getDocs(query(collection(db,'users'), where('email','==', who.toLowerCase())));
-      if (!qs.empty) user = { id: qs.docs[0].id, ...qs.docs[0].data() };
-    } else {
-      const qs = await getDocs(query(collection(db,'users'), where('username','==', who.toLowerCase())));
-      if (!qs.empty) user = { id: qs.docs[0].id, ...qs.docs[0].data() };
-    }
-    if (!user) { alert('User not found.'); return; }
-
-    const d = dayInput.value || todayISO();
-    const startStr = prompt(`Start time for ${fullNameOf(user) || user.username || user.email} on ${d} (24h HH:MM)`, '09:00');
-    const endStr   = prompt(`End time for ${fullNameOf(user) || user.username || user.email} on ${d} (24h HH:MM)`, '17:00');
-    if (!startStr || !endStr) return;
-
-    const mkDate = (hhmm) => {
-      const [hh,mm] = hhmm.split(':').map(x=>parseInt(x,10));
-      if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
-      return new Date(`${d}T${pad2(hh)}:${pad2(mm)}:00`);
-    };
-    const start = mkDate(startStr), end = mkDate(endStr);
-    if (!start || !end || end <= start) { alert('Times invalid or end before start.'); return; }
-
-    await addDoc(collection(db,'punches'), { uid:user.id, username:user.username||user.email, fullName: fullNameOf(user)||'', type:'in',  ts: Timestamp.fromDate(start), source:'manual' });
-    await addDoc(collection(db,'punches'), { uid:user.id, username:user.username||user.email, fullName: fullNameOf(user)||'', type:'out', ts: Timestamp.fromDate(end),   source:'manual' });
+  // Admin: manual / delete day
+  btnAddManual.addEventListener('click', async ()=>{ if(!state.isAdmin) return; const who=prompt('Enter username or email:'); if(!who) return; let u=null; if(who.includes('@')){ const qs=await getDocs(query(collection(db,'users'), where('email','==', who.toLowerCase()))); if(!qs.empty) u={ id:qs.docs[0].id, ...qs.docs[0].data() }; } else { const qs=await getDocs(query(collection(db,'users'), where('username','==', who.toLowerCase()))); if(!qs.empty) u={ id:qs.docs[0].id, ...qs.docs[0].data() }; } if(!u){ alert('User not found.'); return; }
+    const d=dayInput.value||todayISO(); const mk=(hhmm)=>{ const [hh,mm]=(hhmm||'').split(':').map(x=>parseInt(x,10)); if(Number.isNaN(hh)||Number.isNaN(mm)) return null; return new Date(`${d}T${pad2(hh)}:${pad2(mm)}:00`); };
+    const s=prompt(`Start time for ${fullNameOf(u) || u.username || u.email} on ${d} (24h HH:MM)`,'09:00'); const e=prompt(`End time (24h HH:MM)`,'17:00');
+    const sd=mk(s), ed=mk(e); if(!sd||!ed||ed<=sd){ alert('Times invalid.'); return; }
+    await addDoc(collection(db,'punches'), { uid:u.id, username:u.username||u.email, fullName: fullNameOf(u)||'', type:'in', ts:Timestamp.fromDate(sd), source:'manual' });
+    await addDoc(collection(db,'punches'), { uid:u.id, username:u.username||u.email, fullName: fullNameOf(u)||'', type:'out', ts:Timestamp.fromDate(ed), source:'manual' });
     alert('Manual pair added.');
   });
+  btnDeleteDay.addEventListener('click', async ()=>{ if(!state.isAdmin) return; if(!confirm('Delete ALL punches shown for this day?')) return; const del=rowsEl.querySelectorAll('[data-del]'); for(const b of del){ await deleteDoc(doc(db,'punches', b.getAttribute('data-del'))); } });
 
-  btnDeleteDay.addEventListener('click', async () => {
-    if (!state.isAdmin) return;
-    if (!confirm('Delete ALL punches shown for this day?')) return;
-    const delBtns = rowsEl.querySelectorAll('[data-del]');
-    for (const b of delBtns) { await deleteDoc(doc(db,'punches', b.getAttribute('data-del'))); }
-  });
-
-  // ======== ADMIN: STAFF ========
-  function loadStaff() {
-    onSnapshot(collection(db,'users'), snap => {
-      staffRows.innerHTML = '';
-      snap.forEach(docu => {
-        const u = { id: docu.id, ...docu.data() };
-        state.usersCache.set(u.id, u);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${u.firstName || ''}</td>
-          <td>${u.lastName || ''}</td>
-          <td>${u.username || ''}</td>
-          <td>${u.email || ''}</td>
-          <td>${u.active ? 'Active' : 'Inactive'}</td>
-          <td class="right">
-            <button data-act="${u.id}" class="btn-ghost" style="height:32px;">${u.active ? 'Disable' : 'Activate'}</button>
-            <button data-deluser="${u.id}" class="btn-danger" style="height:32px;">Delete</button>
-          </td>`;
+  // ===== Admin: staff (includes EDIT) =====
+  function loadStaff(){ onSnapshot(collection(db,'users'), snap => {
+      staffRows.innerHTML=''; snap.forEach(d=>{ const u={ id:d.id, ...d.data() }; state.usersCache.set(u.id,u);
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${u.firstName||''}</td><td>${u.lastName||''}</td><td>${u.username||''}</td><td>${u.email||''}</td><td>${u.active?'Active':'Inactive'}</td>
+        <td class="right">
+          <button data-edituser="${u.id}" class="btn-ghost" style="height:32px;">Edit</button>
+          <button data-act="${u.id}" class="btn-ghost" style="height:32px;">${u.active?'Disable':'Activate'}</button>
+          <button data-deluser="${u.id}" class="btn-danger" style="height:32px;">Delete</button>
+        </td>`;
         staffRows.appendChild(tr);
       });
-
-      staffRows.querySelectorAll('[data-act]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-act');
-          const snap = await getDoc(doc(db,'users', id));
-          if (!snap.exists()) return;
-          const active = !!snap.data().active;
-          await updateDoc(doc(db,'users', id), { active: !active });
-        });
-      });
-
-      staffRows.querySelectorAll('[data-deluser]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-deluser');
-          if (!confirm('Delete this user profile? (Auth login remains)')) return;
-          await deleteDoc(doc(db,'users', id));
-        });
-      });
-    });
-  }
-
-  // ======== REPORTS (previous 2 weeks) ========
-  function getPreviousTwoWeeksRange() {
-    // Last two FULL weeks, Monday 00:00 to Sunday 23:59:59
-    const now = new Date();
-    const day = now.getDay(); // 0=Sun, 1=Mon
-    const offsetToMonday = (day === 0 ? -6 : 1 - day); // this week's Monday
-    const thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetToMonday);
-    // End of last week (yesterday Sunday end)
-    const end = new Date(thisMonday.getTime() - 1); // Sunday 23:59:59 of previous week
-    const start = new Date(thisMonday.getTime() - 14*24*60*60*1000); // two Mondays back
-    start.setHours(0,0,0,0);
-    end.setHours(23,59,59,999);
-    return {start, end};
-  }
-
-  async function loadTotalsPreviousTwoWeeks() {
-    const {start, end} = getPreviousTwoWeeksRange();
-    // load all punches ordered by ts (client filters to range)
-    const q1 = query(collection(db,'punches'), orderBy('ts','asc'));
-    const snap = await getDocs(q1);
-    const byUser = new Map(); // uid -> { username, fullName, mins }
-    const byUserLastIn = new Map();
-
-    snap.forEach(d => {
-      const data = d.data();
-      if (!data.ts?.toDate) return;
-      const when = data.ts.toDate();
-      if (when < start || when > end) return;
-
-      const uid = data.uid;
-      if (!byUser.has(uid)) byUser.set(uid, { username: data.username||'', fullName: data.fullName||'', mins:0 });
-      if (data.type === 'in') {
-        byUserLastIn.set(uid, when);
-      } else if (data.type === 'out') {
-        const lastIn = byUserLastIn.get(uid);
-        if (lastIn) {
-          byUser.get(uid).mins += (when - lastIn)/60000;
-          byUserLastIn.delete(uid);
+      staffRows.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.getAttribute('data-act'); const s=await getDoc(doc(db,'users',id)); if(!s.exists()) return; await updateDoc(doc(db,'users',id), { active: !s.data().active }); }));
+      staffRows.querySelectorAll('[data-deluser]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.getAttribute('data-deluser'); if(!confirm('Delete this user profile? (Auth login remains)')) return; await deleteDoc(doc(db,'users',id)); }));
+      staffRows.querySelectorAll('[data-edituser]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.getAttribute('data-edituser'); const s=await getDoc(doc(db,'users',id)); if(!s.exists()) return; const u=s.data();
+        const first=prompt('First name:', u.firstName||''); if(first===null) return;
+        const last =prompt('Last name:',  u.lastName||''); if(last===null) return;
+        let uname =prompt('Username (3–20 letters/numbers/_):', u.username||''); if(uname===null) return; uname=String(uname).trim().toLowerCase(); if(!validUsername(uname)){ alert('Invalid username.'); return; }
+        // If username changed, move reservation doc
+        if (uname !== (u.username||'')) {
+          const exists=await getDoc(doc(db,'usernames', uname)); if(exists.exists()){ alert('Username is taken.'); return; }
+          const old=u.username?.toLowerCase(); if(old){ const oldDoc=await getDoc(doc(db,'usernames', old)); if(oldDoc.exists() && oldDoc.data().uid===id){ await deleteDoc(doc(db,'usernames', old)); } }
+          await setDoc(doc(db,'usernames', uname), { uid:id, email: u.email });
         }
-      }
+        await updateDoc(doc(db,'users', id), { firstName:first, lastName:last, username:uname });
+        alert('Updated.');
+      }));
+    }); }
+
+  // ===== Reports (biweekly Mon–Sat) =====
+  function lastSaturdayEnd(now=new Date()){
+    const dow=now.getDay(); // 0 Sun .. 6 Sat
+    const daysSinceSat=(dow - 6 + 7) % 7;
+    const d=new Date(now); d.setDate(d.getDate() - daysSinceSat); d.setHours(23,59,59,999); return d;
+  }
+  function periodStartFromEndSat(endSat){
+    const d=new Date(endSat); d.setDate(d.getDate() - 12); d.setHours(0,0,0,0); // Mon of two-week window (Mon..Sat)
+    return d;
+  }
+
+  async function computeTotals(start,end){
+    // Build name map from current users
+    const usersSnap = await getDocs(collection(db,'users'));
+    const nameByUid = new Map();
+    usersSnap.forEach(u=> nameByUid.set(u.id, { username:u.data().username||'', fullName: fullNameOf(u.data()) || '' }));
+
+    const snap = await getDocs(query(collection(db,'punches'), orderBy('ts','asc'))); // client-side filter
+    const byUser = new Map(), lastIn=new Map();
+    snap.forEach(d=>{ const x=d.data(); if(!x.ts?.toDate) return; const when=x.ts.toDate(); if(when<start || when>end) return;
+      const uid=x.uid;
+      if(!byUser.has(uid)) byUser.set(uid,{ mins:0 });
+      if(x.type==='in'){ lastIn.set(uid, when); }
+      if(x.type==='out'){ const li=lastIn.get(uid); if(li){ byUser.get(uid).mins += (when - li)/60000; lastIn.delete(uid); } }
     });
+    const rows = Array.from(byUser.entries()).map(([uid,v])=>{
+      const nm = nameByUid.get(uid) || {};
+      return { uid, name: (nm.fullName||nm.username||'').trim()||uid.slice(0,6), username: nm.username||'', hours: Number(fmtHours(v.mins)) };
+    }).sort((a,b)=> a.name.localeCompare(b.name));
+    return rows;
+  }
 
-    // Render
-    reportRows.innerHTML = '';
-    const rows = Array.from(byUser.entries()).map(([uid, v]) => ({
-      name: v.fullName || v.username || uid.slice(0,6),
-      username: v.username || '',
-      hours: fmtHours(v.mins)
-    })).sort((a,b) => a.name.localeCompare(b.name));
-
-    rows.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${r.name}</td><td>${r.username}</td><td class="right">${r.hours}</td>`;
+  async function renderReportDoc(docu){
+    if(!docu){ reportRows.innerHTML=''; reportRange.textContent='No report found.'; return; }
+    const data = docu.data();
+    const start = data.start?.toDate ? data.start.toDate() : new Date(data.start);
+    const end   = data.end?.toDate ? data.end.toDate()   : new Date(data.end);
+    reportRange.textContent = `Period: ${start.toDateString()} – ${end.toDateString()}  (generated ${(data.generatedAt?.toDate?.() || new Date()).toLocaleString()})`;
+    reportRows.innerHTML='';
+    (data.rows||[]).forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.name}</td><td>${r.username||''}</td><td class="right">${Number(r.hours).toFixed(2)}</td>`;
       reportRows.appendChild(tr);
     });
-
-    return rows; // for CSV export
   }
 
-  btnPrev2Weeks.addEventListener('click', loadTotalsPreviousTwoWeeks);
+  async function loadLatestReport(){
+    const q1 = query(collection(db,'reports'), orderBy('end','desc'), limit(1));
+    const s = await getDocs(q1);
+    if (s.empty) { reportRange.textContent = 'No saved report yet. Click "Generate Now".'; reportRows.innerHTML=''; return; }
+    await renderReportDoc(s.docs[0]);
+  }
 
-  btnExport.addEventListener('click', () => {
-    // Export visible Entries table
-    const headers = ['#','name','username','type','when'];
-    const lines = [headers.join(',')];
-    let i=1;
-    rowsEl.querySelectorAll('tr').forEach(tr => {
-      const tds = tr.querySelectorAll('td');
-      if (tds.length < 5) return;
-      const row = [i++, tds[1].textContent, tds[2].textContent, tds[3].textContent, tds[4].textContent];
-      lines.push(row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  async function loadReportById(docId) {
+    const s = await getDoc(doc(db,'reports', docId));
+    if (s.exists()) await renderReportDoc(s);
+  }
+
+  async function loadAllReports() {
+    const q1 = query(collection(db,'reports'), orderBy('end','desc'));
+    const snap = await getDocs(q1);
+    reportList.innerHTML = '';
+    snap.forEach(d => {
+      const data = d.data();
+      const start = data.start?.toDate ? data.start.toDate() : new Date(data.start);
+      const end   = data.end?.toDate ? data.end.toDate()   : new Date(data.end);
+      const gen   = data.generatedAt?.toDate ? data.generatedAt.toDate() : null;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${start.toDateString()}</td>
+        <td>${end.toDateString()}</td>
+        <td>${gen ? gen.toLocaleString() : '—'}</td>
+        <td class="right">
+          <button data-view="${d.id}" class="btn-ghost" style="height:32px;">View</button>
+          <button data-delreport="${d.id}" class="btn-danger" style="height:32px;">Delete</button>
+        </td>
+      `;
+      reportList.appendChild(tr);
     });
-    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `timeclock_${dayInput.value}.csv`;
-    a.click();
-  });
 
-  btnExportTotals.addEventListener('click', async () => {
-    const rows = await loadTotalsPreviousTwoWeeks();
-    const headers = ['Name','Username','Total Hours (last 2 weeks)'];
-    const lines = [headers.join(',')];
-    rows.forEach(r => lines.push([r.name, r.username, r.hours].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')));
-    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `timeclock_totals_last2weeks.csv`;
-    a.click();
-  });
+    reportList.querySelectorAll('[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => loadReportById(btn.getAttribute('data-view')));
+    });
+    reportList.querySelectorAll('[data-delreport]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this report?')) return;
+        await deleteDoc(doc(db,'reports', btn.getAttribute('data-delreport')));
+        await loadAllReports();
+        await loadLatestReport();
+      });
+    });
+  }
+
+  async function generateAndSaveCurrentBiweekly(){
+    const endSat = lastSaturdayEnd(new Date());
+    const start = periodStartFromEndSat(endSat);
+    const rows = await computeTotals(start,endSat);
+    const payload = { start: Timestamp.fromDate(start), end: Timestamp.fromDate(endSat), rows, generatedAt: serverTimestamp() };
+    await addDoc(collection(db,'reports'), payload);
+    await loadLatestReport();
+    await loadAllReports();
+  }
+
+  // Buttons
+  btnLoadLatest.addEventListener('click', loadLatestReport);
+  btnGenerateNow.addEventListener('click', async ()=>{ if(!state.isAdmin) return; await generateAndSaveCurrentBiweekly(); alert('Report generated.'); });
+  btnExportTotals.addEventListener('click', ()=>{ const headers=['Name','Username','Total Hours']; const lines=[headers.join(',')]; reportRows.querySelectorAll('tr').forEach(tr=>{ const t=tr.querySelectorAll('td'); if(t.length<3) return; lines.push([t[0].textContent,t[1].textContent,t[2].textContent].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')); }); const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='biweekly_totals.csv'; a.click(); });
+
+  // Export visible entries (daily)
+  btnExport.addEventListener('click', ()=>{ const headers=['#','name','username','type','when']; const lines=[headers.join(',')]; let i=1; rowsEl.querySelectorAll('tr').forEach(tr=>{ const t=tr.querySelectorAll('td'); if(t.length<5) return; const row=[i++,t[1].textContent,t[2].textContent,t[3].textContent,t[4].textContent]; lines.push(row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')); }); const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`timeclock_${dayInput.value}.csv`; a.click(); });
 </script>
 </body>
 </html>
