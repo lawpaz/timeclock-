@@ -302,7 +302,7 @@
   const welcome=$('#welcome'), roleBadge=$('#roleBadge'), activeBadge=$('#activeBadge']);
   const statusEl=$('#status'), sinceEl=$('#since');
   const btnIn=$('#btnIn'), btnOut=$('#btnOut');
-  const periodLbl=$('#periodLbl'), btnPrevPeriod=$('#btnPrevPeriod'), btnNextPeriod=$('#btnNextPeriod');
+  const periodLbl=$('#periodLbl'), btnPrevPeriod=$('#btnPrevPeriod'), btnNextPeriod=$('#btnNextPeriod']);
   const entryRows=$('#entryRows'); const nameTabs = $('#nameTabs'); const btnShowAddEntry=$('#btnShowAddEntry');
   const addEntryCard=$('#addEntryCard'), aeUser=$('#aeUser'), aeDate=$('#aeDate'), aeIn=$('#aeIn'), aeOut=$('#aeOut'), aeDay=$('#aeDay'), aeSave=$('#aeSave'), aeCancel=$('#aeCancel');
   const adminSection=$('#admin'), staffRows=$('#staffRows');
@@ -505,22 +505,22 @@
       const d = new Date(r.dateKey+'T00:00:00');
       const tr=document.createElement('tr');
 
-      let tdIn = '<td>' + (r.firstIn?hmNoLead(r.firstIn):'') + '</td>';
-      let tdOut = '<td>' + (r.lastOut?hmNoLead(r.lastOut):'') + '</td>';
-      let tdDay = '<td>' + (r.dayType||'Work Day') + '</td>';
+      let tdIn = `<td>${r.firstIn ? hmNoLead(r.firstIn) : ''}</td>`;
+      let tdOut = `<td>${r.lastOut ? hmNoLead(r.lastOut) : ''}</td>`;
+      let tdDay = `<td>${r.dayType || 'Work Day'}</td>`;
 
       if(state.isAdmin){
-        tdIn  = '<td' + cellEditableAttr('in', r.uid, r.dateKey)  + '>' + (r.firstIn?hmNoLead(r.firstIn):'') + '</td>';
-        tdOut = '<td' + cellEditableAttr('out', r.uid, r.dateKey) + '>' + (r.lastOut?hmNoLead(r.lastOut):'') + '</td>';
-        tdDay = '<td' + cellEditableAttr('daytype', r.uid, r.dateKey) + '>' + (r.dayType||'Work Day') + '</td>';
+        tdIn  = `<td${cellEditableAttr('in', r.uid, r.dateKey)}>${r.firstIn ? hmNoLead(r.firstIn) : ''}</td>`;
+        tdOut = `<td${cellEditableAttr('out', r.uid, r.dateKey)}>${r.lastOut ? hmNoLead(r.lastOut) : ''}</td>`;
+        tdDay = `<td${cellEditableAttr('daytype', r.uid, r.dateKey)}>${r.dayType || 'Work Day'}</td>`;
       }
 
-      const delBtn = state.isAdmin ? ('<button class="btn-danger" data-del="'+r.uid+'|'+r.dateKey+'" style="height:32px;">Delete Day</button>') : '';
+      const delBtn = state.isAdmin ? `<button class="btn-danger" data-del="${r.uid}|${r.dateKey}" style="height:32px;">Delete Day</button>` : '';
       tr.innerHTML =
-        '<td>'+nm+'</td>' +
-        '<td>'+mdy(d)+'</td>' +
+        `<td>${nm}</td>` +
+        `<td>${mdy(d)}</td>` +
         tdIn + tdOut + tdDay +
-        '<td class="right">'+delBtn+'</td>';
+        `<td class="right">${delBtn}</td>`;
 
       tr.dataset.docs = JSON.stringify(r.docs.map(x=>({id:x.id,type:x.type,ts:x.ts})));
       entryRows.appendChild(tr);
@@ -533,7 +533,7 @@
       const w1End=new Date(start); w1End.setDate(start.getDate()+5); w1End.setHours(23,59,59,999);
       rows.forEach(r=>{ const m=r.totalMins||0; const d=new Date(r.dateKey+'T00:00:00'); if(d<=w1End) minsWeek1+=m; else minsWeek2+=m; });
       const periodMins = minsWeek1+minsWeek2;
-      const addRow=(label,hrs)=>{ const tr=document.createElement('tr'); tr.innerHTML='<td><strong>'+label+'</strong></td><td></td><td></td><td></td><td class="right"><strong>'+fmt2(hrs/60)+'</strong></td><td></td>'; entryRows.appendChild(tr); };
+      const addRow=(label,hrs)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><strong>${label}</strong></td><td></td><td></td><td></td><td class="right"><strong>${fmt2(hrs/60)}</strong></td><td></td>`; entryRows.appendChild(tr); };
       addRow('Week Total (Mon–Sat, week 1)', minsWeek1);
       addRow('Week Total (Mon–Sat, week 2)', minsWeek2);
       addRow('Period Total', periodMins);
@@ -605,12 +605,18 @@
       s.forEach(d=>{
         const u={ id:d.id, ...d.data() }; state.users.set(u.id,u);
         const tr=document.createElement('tr');
-        tr.innerHTML='<td>'+ (u.firstName||'') +'</td><td>'+ (u.lastName||'') +'</td><td>'+ (u.username||'') +'</td><td>'+ (u.email||'') +'</td><td>'+ (u.active?'Active':'Inactive') +'</td>\
-        <td class="right">\
-          <button class="btn-ghost" data-edit="'+u.id+'" style="height:32px;">Edit</button>\
-          <button class="btn-ghost" data-act="'+u.id+'" style="height:32px;">'+(u.active?'Disable':'Activate')+'</button>\
-          <button class="btn-danger" data-del="'+u.id+'" style="height:32px;">Delete</button>\
-        </td>';
+        tr.innerHTML = `
+          <td>${u.firstName || ''}</td>
+          <td>${u.lastName || ''}</td>
+          <td>${u.username || ''}</td>
+          <td>${u.email || ''}</td>
+          <td>${u.active ? 'Active' : 'Inactive'}</td>
+          <td class="right">
+            <button class="btn-ghost" data-edit="${u.id}" style="height:32px;">Edit</button>
+            <button class="btn-ghost" data-act="${u.id}" style="height:32px;">${u.active ? 'Disable' : 'Activate'}</button>
+            <button class="btn-danger" data-del="${u.id}" style="height:32px;">Delete</button>
+          </td>
+        `;
         staffRows.appendChild(tr);
       });
 
@@ -682,8 +688,8 @@
     const rows=(data.rows||[]).slice().sort((a,b)=> a.name.localeCompare(b.name) || new Date(a.date) - new Date(b.date));
     reportRows.innerHTML='';
     let curName=null, weekStart=null, weekMins=0, periodMins=0;
-    function flushWeek(name){ if(weekStart!==null){ const tr=document.createElement('tr'); tr.innerHTML='<td>'+name+'</td><td><strong>Week total</strong></td><td></td><td></td><td class="right"><strong>'+fmt2(weekMins/60)+'</strong></td>'; reportRows.appendChild(tr); weekStart=null; weekMins=0; } }
-    function flushPeriod(name){ const tr=document.createElement('tr'); tr.innerHTML='<td>'+name+'</td><td><strong>Period total</strong></td><td></td><td></td><td class="right"><strong>'+fmt2(periodMins/60)+'</strong></td>'; reportRows.appendChild(tr); periodMins=0; }
+    function flushWeek(name){ if(weekStart!==null){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Week total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(weekMins/60)}</strong></td>`; reportRows.appendChild(tr); weekStart=null; weekMins=0; } }
+    function flushPeriod(name){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Period total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(periodMins/60)}</strong></td>`; reportRows.appendChild(tr); periodMins=0; }
     rows.forEach(r=>{
       const d=new Date(r.date); const dow=d.getDay(); const weekMon=new Date(d); weekMon.setDate(d.getDate() - (dow===0?6:dow-1)); weekMon.setHours(0,0,0,0);
       if(r.name!==curName){ if(curName){ flushWeek(curName); flushPeriod(curName); const sep=document.createElement('tr'); sep.innerHTML='<td colspan="5" class="hint">—</td>'; reportRows.appendChild(sep); }
@@ -691,7 +697,7 @@
       }
       if(+weekMon!==weekStart){ flushWeek(curName); weekStart=+weekMon; }
       weekMins += r.mins; periodMins += r.mins;
-      const tr=document.createElement('tr'); tr.innerHTML='<td>'+r.name+'</td><td>'+mdy(d)+'</td><td>'+(r.in||'')+'</td><td>'+(r.out||'')+'</td><td class="right">'+fmt2(r.mins/60)+'</td>'; reportRows.appendChild(tr);
+      const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.name}</td><td>${mdy(d)}</td><td>${r.in||''}</td><td>${r.out||''}</td><td class="right">${fmt2(r.mins/60)}</td>`; reportRows.appendChild(tr);
     });
     if(curName){ flushWeek(curName); flushPeriod(curName); }
   }
@@ -700,7 +706,7 @@
     reportList.innerHTML=''; s.forEach(d=>{
       const data=d.data(); const st=data.start.toDate?data.start.toDate():new Date(data.start); const en=data.end.toDate?data.end.toDate():new Date(data.end); const gen=data.generatedAt?.toDate?.();
       const tr=document.createElement('tr');
-      tr.innerHTML='<td>'+mdy(st)+'</td><td>'+mdy(en)+'</td><td>'+(gen?gen.toLocaleString():'—')+'</td><td class="right"><button class="btn-danger" data-delreport="'+d.id+'" style="height:32px;">Delete</button></td>';
+      tr.innerHTML=`<td>${mdy(st)}</td><td>${mdy(en)}</td><td>${gen?gen.toLocaleString():'—'}</td><td class="right"><button class="btn-danger" data-delreport="${d.id}" style="height:32px;">Delete</button></td>`;
       reportList.appendChild(tr);
     });
     reportList.querySelectorAll('[data-delreport]').forEach(b=>b.addEventListener('click', async ()=>{ if(!confirm('Delete this report?')) return; await deleteDoc(doc(db,'reports', b.getAttribute('data-delreport'))); await loadAllReports(); await loadLatestReport(); }));
