@@ -190,7 +190,7 @@
     </table>
   </section>
 
-  <!-- Admin: Staff + Reports -->
+  <!-- Admin: Staff + Reports (saved list removed) -->
   <section id="admin" class="card hidden">
     <div class="tabs">
       <button class="tab active" data-admin-tab="staff">Staff</button>
@@ -205,24 +205,17 @@
       </table>
     </div>
 
-    <!-- Reports -->
+    <!-- Reports (no saved list, no View/PDF) -->
     <div id="admin-reports" class="hidden">
       <div class="row" style="gap:10px; margin-bottom:10px;">
         <button id="btnGenerateNow" class="btn-primary">Generate Now (biweekly Mon–Sat)</button>
         <button id="btnLoadLatest" class="btn-ghost">Load Latest</button>
         <button id="btnExportTotals" class="btn-ghost">Export CSV (Report)</button>
-        <button id="btnPrintReport" class="btn-ghost">Print / PDF</button>
       </div>
       <div class="hint" id="reportRange"></div>
       <table>
         <thead><tr><th>Name</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th class="right">Daily Hours</th></tr></thead>
         <tbody id="reportRows"></tbody>
-      </table>
-
-      <h4 style="margin:16px 0 6px;">Saved reports</h4>
-      <table>
-        <thead><tr><th>Start</th><th>End</th><th>Generated</th><th class="right">Actions</th></tr></thead>
-        <tbody id="reportList"></tbody>
       </table>
     </div>
   </section>
@@ -256,15 +249,22 @@
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const pad2 = n => String(n).padStart(2,'0');
-  const hmNoLead = d => `${d.getHours()}:${pad2(d.getMinutes())}`; // 9:00 style
+  const hmNoLead = d => `${d.getHours()}:${pad2(d.getMinutes())}`;          // 9:00 style
   const fmt2 = n => (Math.round(n*100)/100).toFixed(2);
-  const fmtHM = mins => `${Math.floor(mins/60)}h ${pad2(Math.round(mins%60))}m`;
   const ymd = d => d.toISOString().slice(0,10);
   const mdy = d => d.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'}); // Aug 11, 2025
   const todayISO = () => new Date().toISOString().slice(0,10);
   const show = (el, v=true) => el.classList.toggle('hidden', !v);
   const fullNameOf = u => [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
   const msg = $('#msg');
+
+  // Global error surface so silent JS errors show up
+  window.addEventListener('error', e => {
+    const out = 'JS error: ' + (e?.message || e?.error || 'unknown');
+    console.error(out, e);
+    const box = document.getElementById('siMsg'); if (box) box.textContent = out;
+    alert(out);
+  });
 
   // Desktop-only guard
   (function enforceDesktop(){
@@ -292,7 +292,7 @@
     b.classList.add('active');
     show($('#admin-staff'), b.dataset.adminTab==='staff');
     show($('#admin-reports'), b.dataset.adminTab==='reports');
-    if(b.dataset.adminTab==='reports'){ loadLatestReport(); loadAllReports(); }
+    if(b.dataset.adminTab==='reports'){ loadLatestReport(); }
   }));
 
   // Refs
@@ -301,14 +301,14 @@
   const btnSignIn=$('#btnSignIn'), btnReset=$('#btnReset'), btnSignUp=$('#btnSignUp');
   const btnSignOut=$('#btnSignOut'), btnExport=$('#btnExport');
   const welcome=$('#welcome'), roleBadge=$('#roleBadge'), activeBadge=$('#activeBadge');
-  const statusEl=$('#status'), sinceEl=$('#since'), todayTotalEl=$('#todayTotal');
+  const statusEl=$('#status'), sinceEl=$('#since');
   const btnIn=$('#btnIn'), btnOut=$('#btnOut');
   const periodLbl=$('#periodLbl'), btnPrevPeriod=$('#btnPrevPeriod'), btnNextPeriod=$('#btnNextPeriod');
   const addEntryCard=$('#addEntryCard'), btnShowAddEntry=$('#btnShowAddEntry');
   const aeUser=$('#aeUser'), aeDate=$('#aeDate'), aeIn=$('#aeIn'), aeOut=$('#aeOut'), aeDay=$('#aeDay'), aeSave=$('#aeSave'), aeCancel=$('#aeCancel');
   const entryRows=$('#entryRows'); const nameTabs=$('#nameTabs');
   const adminSection=$('#admin'), staffRows=$('#staffRows');
-  const reportRows=$('#reportRows'), reportRange=$('#reportRange'), btnLoadLatest=$('#btnLoadLatest'), btnGenerateNow=$('#btnGenerateNow'), btnExportTotals=$('#btnExportTotals'), reportList=$('#reportList'), btnPrintReport=$('#btnPrintReport');
+  const reportRows=$('#reportRows'), reportRange=$('#reportRange'), btnLoadLatest=$('#btnLoadLatest'), btnGenerateNow=$('#btnGenerateNow'), btnExportTotals=$('#btnExportTotals');
 
   // State
   let state = { user:null, isAdmin:false, me:null, users:new Map(), currentStatus:'out', filterUid:null, period:null, periodOffset:0, liveUnsub:null, earliestPunch:null };
@@ -318,28 +318,61 @@
     if(!idOrUsername) throw new Error('Enter email or username.');
     if(idOrUsername.includes('@')) return idOrUsername.trim().toLowerCase();
     const uname=idOrUsername.trim().toLowerCase();
+    // username lookup (may fail if rules block; catch in caller)
     const s=await getDoc(doc(db,'usernames', uname)); if(!s.exists()) throw new Error('Username not found.');
     const data=s.data(); if(!data.email) throw new Error('Username has no email.');
     return String(data.email).toLowerCase();
   }
 
-  // Sign-in/up
-  btnSignIn.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await signInWithEmailAndPassword(auth,email,siPass.value);}catch(e){ siMsg.textContent='Sign-in failed: '+e.message; }});
-  btnReset.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await sendPasswordResetEmail(auth,email); siMsg.textContent='Reset email sent if the account exists.';}catch(e){ siMsg.textContent='Password reset failed: '+e.message; }});
-  btnSignUp.addEventListener('click', async ()=>{ suMsg.textContent=''; try{
-    const firstName=suFirst.value.trim(), lastName=suLast.value.trim(); if(!firstName||!lastName) throw new Error('Enter first and last name.');
-    const username=suUsername.value.trim().toLowerCase(); if(!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/_');
-    const email=suEmail.value.trim().toLowerCase(); const pass=suPass.value; if(pass.length<8) throw new Error('Password must be at least 8 characters.');
-    const exists=await getDoc(doc(db,'usernames',username)); if(exists.exists()) throw new Error('Username is taken.');
-    const cred=await createUserWithEmailAndPassword(auth,email,pass); await updateProfile(cred.user,{displayName:username});
-    await setDoc(doc(db,'users',cred.user.uid),{ username,email,firstName,lastName,role:'staff',active:false,createdAt:serverTimestamp() });
-    await setDoc(doc(db,'usernames',username),{ uid:cred.user.uid, email });
-    suMsg.textContent='Account created. Admin must activate your account.';
-  }catch(e){ suMsg.textContent='Sign-up failed: '+e.message; }});
+  // Sign-in/up (LOUD errors)
+  btnSignIn.addEventListener('click', async ()=>{
+    siMsg.textContent='';
+    try{
+      const email=await resolveLoginIdentifier(siEmail.value);
+      await signInWithEmailAndPassword(auth,email,siPass.value);
+    }catch(e){
+      console.error(e);
+      const m = (e && (e.code? e.code+': ' : '') + (e.message||'')) || String(e);
+      siMsg.textContent='Sign-in failed: '+m;
+      alert('Sign-in failed: '+m);
+    }
+  });
+  btnReset.addEventListener('click', async ()=>{
+    siMsg.textContent='';
+    try{
+      const email=await resolveLoginIdentifier(siEmail.value);
+      await sendPasswordResetEmail(auth,email);
+      siMsg.textContent='Reset email sent if the account exists.';
+    }catch(e){
+      const m=(e && (e.code? e.code+': ' : '')+(e.message||''))||String(e);
+      siMsg.textContent='Password reset failed: '+m; alert('Password reset failed: '+m);
+    }
+  });
+  btnSignUp.addEventListener('click', async ()=>{
+    suMsg.textContent='';
+    try{
+      const firstName=suFirst.value.trim(), lastName=suLast.value.trim(); if(!firstName||!lastName) throw new Error('Enter first and last name.');
+      const username=suUsername.value.trim().toLowerCase(); if(!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/_');
+      const email=suEmail.value.trim().toLowerCase(); const pass=suPass.value; if(pass.length<8) throw new Error('Password must be at least 8 characters.');
+      const exists=await getDoc(doc(db,'usernames',username)); if(exists.exists()) throw new Error('Username is taken.');
+      const cred=await createUserWithEmailAndPassword(auth,email,pass); await updateProfile(cred.user,{displayName:username});
+      await setDoc(doc(db,'users',cred.user.uid),{ username,email,firstName,lastName,role:'staff',active:false,createdAt:serverTimestamp() });
+      await setDoc(doc(db,'usernames',username),{ uid:cred.user.uid, email });
+      suMsg.textContent='Account created. Admin must activate your account.';
+    }catch(e){
+      const m=(e && (e.code? e.code+': ' : '')+(e.message||''))||String(e);
+      suMsg.textContent='Sign-up failed: '+m; alert('Sign-up failed: '+m);
+    }
+  });
   btnSignOut.addEventListener('click', async ()=>{ await signOut(auth); });
 
-  // Roles & bootstrap
-  async function isAdmin(uid){ const s=await getDoc(doc(db,'admins',uid)); return s.exists(); }
+  // Admin check (tries multiple paths)
+  async function isAdmin(uid){
+    try{ const a=await getDoc(doc(db,'admins',uid)); if(a.exists()) return true; }catch{}
+    try{ const b=await getDoc(doc(db,'roles','admins','admins',uid)); if(b.exists()) return true; }catch{}
+    return false;
+  }
+
   async function ensureUserDoc(user){
     const ref=doc(db,'users', user.uid), s=await getDoc(ref);
     if(!s.exists()) await setDoc(ref, { username:user.displayName||'', email:user.email, role:'staff', active:false, createdAt:serverTimestamp() });
@@ -359,28 +392,30 @@
 
   onAuthStateChanged(auth, async (user)=>{
     state.user=user||null; if(!user){ if(state.liveUnsub) state.liveUnsub(); renderAuth(false); return; }
-    state.isAdmin = await isAdmin(user.uid);
-    state.me = await ensureUserDoc(user);
-    welcome.textContent = `Welcome, ${fullNameOf(state.me)||state.me?.username||user.email}`;
-    show(roleBadge, state.isAdmin); show(activeBadge, !state.me?.active);
-    show(adminSection, state.isAdmin);
-    show(nameTabs, state.isAdmin);
-    show(btnShowAddEntry, state.isAdmin);
-    show(addEntryCard, false);
+    try{
+      state.isAdmin = await isAdmin(user.uid);
+      state.me = await ensureUserDoc(user);
+      welcome.textContent = `Welcome, ${fullNameOf(state.me)||state.me?.username||user.email}`;
+      show(roleBadge, state.isAdmin); show(activeBadge, !state.me?.active);
+      show(adminSection, state.isAdmin);
+      show(nameTabs, state.isAdmin);
+      show(btnShowAddEntry, state.isAdmin);
+      show(addEntryCard, false);
+      show(btnExport, state.isAdmin);
 
-    // Staff cannot edit, cannot export entries
-    show(btnExport, state.isAdmin);
+      state.periodOffset = 0;
+      state.period = periodByOffset(0);
+      periodLbl.textContent = `Period: ${mdy(state.period.start)} – ${mdy(state.period.end)}`;
+      await updatePeriodNavButtons();
 
-    state.periodOffset = 0;
-    state.period = periodByOffset(0);
-    periodLbl.textContent = `Period: ${mdy(state.period.start)} – ${mdy(state.period.end)}`;
-    updatePeriodNavButtons();
-
-    state.filterUid = state.isAdmin ? null : user.uid; // staff see only theirs
-    wireNameTabs(); // admin only
-    subscribeEntries();
-    if (state.isAdmin) { loadStaff(); loadUsersForAddEntry(); loadLatestReport(); loadAllReports(); }
-    recomputeStatus();
+      state.filterUid = state.isAdmin ? null : user.uid; // staff see only theirs
+      wireNameTabs();
+      subscribeEntries();
+      if (state.isAdmin) { loadStaff(); loadUsersForAddEntry(); loadLatestReport(); }
+      await recomputeStatus();
+    }catch(e){
+      alert('Post-login init error: '+(e?.message||e)); console.error(e);
+    }
   });
 
   async function updatePeriodNavButtons(){
@@ -393,13 +428,13 @@
   btnPrevPeriod.addEventListener('click', async ()=>{
     state.periodOffset -= 1; state.period = periodByOffset(state.periodOffset);
     periodLbl.textContent = `Period: ${mdy(state.period.start)} – ${mdy(state.period.end)}`;
-    updatePeriodNavButtons(); buildEntries();
+    await updatePeriodNavButtons(); buildEntries();
   });
   btnNextPeriod.addEventListener('click', async ()=>{
     if(state.periodOffset>=0) return;
     state.periodOffset += 1; state.period = periodByOffset(state.periodOffset);
     periodLbl.textContent = `Period: ${mdy(state.period.start)} – ${mdy(state.period.end)}`;
-    updatePeriodNavButtons(); buildEntries();
+    await updatePeriodNavButtons(); buildEntries();
   });
 
   // ===== Strict IN→OUT flow & status =====
@@ -410,9 +445,9 @@
   async function recomputeStatus(){
     const last=await lastPunch(state.user.uid);
     if(!last || last.type==='out'){
-      state.currentStatus='out'; statusEl.textContent='Not clocked in'; btnIn.disabled=!(state.isAdmin||state.me?.active); btnOut.disabled=true; sinceEl.textContent='—';
+      statusEl.textContent='Not clocked in'; btnIn.disabled=!(state.isAdmin||state.me?.active); btnOut.disabled=true; sinceEl.textContent='—';
     } else {
-      state.currentStatus='in'; statusEl.textContent='Clocked in'; btnIn.disabled=true; btnOut.disabled=false; sinceEl.textContent=(last.ts?.toDate?.()||new Date()).toLocaleString();
+      statusEl.textContent='Clocked in'; btnIn.disabled=true; btnOut.disabled=false; sinceEl.textContent=(last.ts?.toDate?.()||new Date()).toLocaleString();
     }
   }
   async function doPunch(type){
@@ -432,7 +467,7 @@
       });
       msg.textContent='Recorded ✓';
       await recomputeStatus();
-    }catch(e){ msg.textContent='Error: '+e.message; }
+    }catch(e){ msg.textContent='Error: '+e.message; alert('Punch failed: '+e.message); }
   }
   $('#btnIn').addEventListener('click', ()=>doPunch('in'));
   $('#btnOut').addEventListener('click', ()=>doPunch('out'));
@@ -511,12 +546,12 @@
       });
     }
 
-    // Totals for staff (and for admin when filtered to one user)
+    // Totals (staff view or admin filtered to one user)
     const singleUser = !state.isAdmin || !!state.filterUid;
     if(singleUser){
       let minsWeek1=0, minsWeek2=0;
-      const w1Start=new Date(start); const w1End=new Date(start); w1End.setDate(w1Start.getDate()+5); w1End.setHours(23,59,59,999);
-      rows.forEach(r=>{ const bucket = (r.date<=w1End)?'w1':'w2'; const m=r.mins||0; if(bucket==='w1') minsWeek1+=m; else minsWeek2+=m; });
+      const w1End=new Date(start); w1End.setDate(start.getDate()+5); w1End.setHours(23,59,59,999);
+      rows.forEach(r=>{ const m=r.mins||0; if(r.date<=w1End) minsWeek1+=m; else minsWeek2+=m; });
       const periodMins = minsWeek1+minsWeek2;
       const addTotalRow = (label,hrs)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><strong>${label}</strong></td><td></td><td></td><td></td><td class="right"><strong>${fmt2(hrs)}</strong></td><td></td>`; entryRows.appendChild(tr); };
       addTotalRow('Week Total (Mon–Sat, week 1)', minsWeek1/60);
@@ -526,7 +561,6 @@
 
     // Editing (admin only)
     if(state.isAdmin){
-      // Delete day
       entryRows.querySelectorAll('[data-del]').forEach(btn=>{
         btn.addEventListener('click', async ()=>{
           if(!confirm('Delete ALL punches for this day?')) return;
@@ -534,12 +568,10 @@
           for(const d of docs){ await deleteDoc(doc(db,'punches', d.id)); }
         });
       });
-      // Date editor
       entryRows.querySelectorAll('[data-kind="date"]').forEach(cell=>{
         cell.addEventListener('click', async ()=>{
           if(cell.querySelector('input')) return;
-          const key=cell.getAttribute('data-key');
-          const d=new Date(key.split('|')[1]+'T00:00:00');
+          const d=new Date(cell.getAttribute('data-key').split('|')[1]+'T00:00:00');
           const inp=document.createElement('input'); inp.type='date'; inp.value=ymd(d); inp.style.height='32px';
           cell.innerHTML=''; cell.appendChild(inp); inp.focus();
           inp.addEventListener('change', async ()=>{
@@ -549,7 +581,6 @@
           inp.addEventListener('blur', ()=> cell.textContent=mdy(new Date(inp.value||ymd(d))));
         });
       });
-      // Time editors
       function wireTime(kind){
         entryRows.querySelectorAll(`[data-kind="${kind}"]`).forEach(cell=>{
           cell.addEventListener('click', async ()=>{
@@ -572,8 +603,6 @@
         });
       }
       wireTime('in'); wireTime('out');
-
-      // Day type editor (dropdown)
       entryRows.querySelectorAll('[data-kind="day"]').forEach(cell=>{
         cell.addEventListener('click', async ()=>{
           if(cell.querySelector('select')) return;
@@ -583,9 +612,7 @@
           sel.style.height='32px';
           const row=cell.closest('tr'); const docs=JSON.parse(row.dataset.docs);
           cell.innerHTML=''; cell.appendChild(sel); sel.focus();
-          sel.addEventListener('change', async ()=>{
-            for(const d of docs){ await updateDoc(doc(db,'punches', d.id), { dayType: sel.value }); }
-          });
+          sel.addEventListener('change', async ()=>{ for(const d of docs){ await updateDoc(doc(db,'punches', d.id), { dayType: sel.value }); }});
           sel.addEventListener('blur', ()=> cell.textContent=sel.value);
         });
       });
@@ -616,7 +643,7 @@
     alert('Entry added'); show(addEntryCard,false);
   });
 
-  // ===== Staff list (admin) =====
+  // Staff list (admin)
   function loadStaff(){
     onSnapshot(collection(db,'users'), s=>{
       staffRows.innerHTML='';
@@ -656,7 +683,7 @@
     });
   }
 
-  // ===== Reports =====
+  // Reports (Generate, Load Latest, Export CSV)
   function computeDailyRowsFromPunches(start,end, snaps, usersSnap){
     const nameByUid = new Map(); usersSnap.forEach(u=>nameByUid.set(u.id,{full: fullNameOf(u.data())||'', username:u.data().username||''}));
 
@@ -673,9 +700,9 @@
 
     const rows = Array.from(perDay.values()).map(v=>{
       const nm=nameByUid.get(v.uid)?.full || nameByUid.get(v.uid)?.username || v.uid.slice(0,6);
-      return { uid:v.uid, name:nm, date:v.date, in:v.firstIn?hmNoLead(v.firstIn):'', out:v.lastOut?hmNoLead(v.lastOut):'', mins:v.mins };
+      return { uid:v.uid, name:nm, date:v.date, dateLabel: mdy(v.date), in:v.firstIn?hmNoLead(v.firstIn):'', out:v.lastOut?hmNoLead(v.lastOut):'', mins:v.mins };
     }).sort((a,b)=> a.name.localeCompare(b.name) || a.date - b.date);
-    return rows.map(r => ({...r, dateLabel: mdy(r.date)}));
+    return rows;
   }
 
   async function generateAndSaveCurrentBiweekly(){
@@ -685,24 +712,26 @@
     const usersSnap = await getDocs(collection(db,'users'));
     const rows = computeDailyRowsFromPunches(start,end,snaps,usersSnap);
     await addDoc(collection(db,'reports'), { start: Timestamp.fromDate(start), end: Timestamp.fromDate(end), rows, generatedAt: serverTimestamp() });
-    await loadLatestReport(); await loadAllReports();
+    await renderReportRows(rows, start, end);
   }
   btnGenerateNow.addEventListener('click', generateAndSaveCurrentBiweekly);
 
   async function loadLatestReport(){
     const s=await getDocs(query(collection(db,'reports'), orderBy('end','desc'), limit(1)));
     if(s.empty){ reportRows.innerHTML=''; reportRange.textContent='No saved report yet. Click "Generate Now".'; return; }
-    await renderReportDoc(s.docs[0]);
+    const d=s.docs[0].data(); const start=d.start.toDate?d.start.toDate():new Date(d.start); const end=d.end.toDate?d.end.toDate():new Date(d.end);
+    await renderReportRows(d.rows||[], start, end, d.generatedAt?.toDate?.());
   }
-  async function renderReportDoc(docu){
-    const data=docu.data(); const start=data.start.toDate?data.start.toDate():new Date(data.start); const end=data.end.toDate?data.end.toDate():new Date(data.end);
-    reportRange.textContent = `Period: ${mdy(start)} – ${mdy(end)} (generated ${(data.generatedAt?.toDate?.()||new Date()).toLocaleString()})`;
-    const rows=(data.rows||[]).slice().sort((a,b)=> a.name.localeCompare(b.name) || new Date(a.date) - new Date(b.date));
+  btnLoadLatest.addEventListener('click', loadLatestReport);
+
+  async function renderReportRows(rows, start, end, genAt){
+    reportRange.textContent = `Period: ${mdy(start)} – ${mdy(end)}${genAt? ' (generated '+genAt.toLocaleString()+')':''}`;
+    const list=rows.slice().sort((a,b)=> a.name.localeCompare(b.name) || new Date(a.date) - new Date(b.date));
     reportRows.innerHTML='';
     let curName=null, weekStart=null, weekMins=0, periodMins=0;
-    function flushWeek(name){ if(weekStart!==null){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Week total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(weekMins/60)}</strong></td>`; reportRows.appendChild(tr); weekStart=null; weekMins=0; } }
-    function flushPeriod(name){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Period total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(periodMins/60)}</strong></td>`; reportRows.appendChild(tr); periodMins=0; }
-    rows.forEach(r=>{
+    function flushWeek(n){ if(weekStart!==null){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${n}</td><td><strong>Week total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(weekMins/60)}</strong></td>`; reportRows.appendChild(tr); weekStart=null; weekMins=0; } }
+    function flushPeriod(n){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${n}</td><td><strong>Period total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(periodMins/60)}</strong></td>`; reportRows.appendChild(tr); periodMins=0; }
+    list.forEach(r=>{
       const d=new Date(r.date);
       const dow=d.getDay(); const weekMon=new Date(d); weekMon.setDate(d.getDate() - (dow===0?6:dow-1)); weekMon.setHours(0,0,0,0);
       if(r.name!==curName){ if(curName){ flushWeek(curName); flushPeriod(curName); const sep=document.createElement('tr'); sep.innerHTML=`<td colspan="5" class="hint">—</td>`; reportRows.appendChild(sep); }
@@ -714,50 +743,6 @@
     });
     if(curName){ flushWeek(curName); flushPeriod(curName); }
   }
-
-  async function loadAllReports(){
-    const s=await getDocs(query(collection(db,'reports'), orderBy('end','desc')));
-    reportList.innerHTML=''; s.forEach(d=>{
-      const data=d.data(); const st=data.start.toDate?data.start.toDate():new Date(data.start); const en=data.end.toDate?data.end.toDate():new Date(data.end); const gen=data.generatedAt?.toDate?.();
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${mdy(st)}</td><td>${mdy(en)}</td><td>${gen?gen.toLocaleString():'—'}</td>
-      <td class="right"><button class="btn-ghost" data-view="${d.id}" style="height:32px;">View</button> <button class="btn-danger" data-delreport="${d.id}" style="height:32px;">Delete</button></td>`;
-      reportList.appendChild(tr);
-    });
-    // VIEW: swap in immediately
-    reportList.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click', async ()=>{
-      const id=b.getAttribute('data-view'); const s=await getDoc(doc(db,'reports', id)); if(s.exists()) await renderReportDoc(s);
-      document.getElementById('admin-reports').scrollIntoView({behavior:'smooth', block:'start'});
-    }));
-    // DELETE
-    reportList.querySelectorAll('[data-delreport]').forEach(b=>b.addEventListener('click', async ()=>{ if(!confirm('Delete this report?')) return; await deleteDoc(doc(db,'reports', b.getAttribute('data-delreport'))); await loadAllReports(); await loadLatestReport(); }));
-  }
-  btnLoadLatest.addEventListener('click', loadLatestReport);
-
-  // Printable report window — SAFE (no inline <script> in the string)
-  btnPrintReport.addEventListener('click', () => {
-    const rows = [];
-    reportRows.querySelectorAll('tr').forEach(tr=>{
-      const t=[...tr.querySelectorAll('td')].map(x=>x.textContent.trim());
-      if(!t.length) return;
-      if(t[1]==='Week total' || t[1]==='Period total'){ rows.push([t[0],t[1],'','',t[4]]); }
-      else if(t.length===5){ rows.push(t); }
-    });
-    const title = document.getElementById('reportRange').textContent.replace('Period:', 'Report:');
-    const html = `
-      <html><head><meta charset="utf-8"><title>${title}</title>
-      <style>body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:20px;color:#111}
-      h2{margin:0 0 12px} table{border-collapse:collapse;width:100%}
-      th,td{border:1px solid #ccc;padding:6px 8px;text-align:left} th{background:#f3f4f6}</style></head>
-      <body>
-        <h2>${title}</h2>
-        <table><thead><tr><th>Name</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Daily Hours</th></tr></thead>
-        <tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('')}</tbody>
-      </body></html>`;
-    const w = window.open('', '_blank');
-    w.document.open(); w.document.write(html); w.document.close(); w.focus();
-    setTimeout(() => { try { w.print(); } catch(_) {} }, 300);
-  });
 
   // Export CSV (report view)
   btnExportTotals.addEventListener('click', ()=>{
