@@ -309,7 +309,7 @@
   var welcome=$('#welcome'), roleBadge=$('#roleBadge'), activeBadge=$('#activeBadge');
   var statusEl=$('#status'), sinceEl=$('#since');
   var btnIn=$('#btnIn'), btnOut=$('#btnOut');
-  var periodLbl=$('#periodLbl'), btnPrevPeriod=$('#btnPrevPeriod'), btnNextPeriod=$('#btnNextPeriod');
+  var periodLbl=$('#periodLbl'), btnPrevPeriod=$('#btnPrevPeriod'), btnNextPeriod=$('#btnNextPeriod']);
   var entryRows=$('#entryRows'); var nameTabs = $('#nameTabs'); var btnShowAddEntry=$('#btnShowAddEntry');
   var addEntryCard=$('#addEntryCard'), aeUser=$('#aeUser'), aeDate=$('#aeDate'), aeIn=$('#aeIn'), aeOut=$('#aeOut'), aeDay=$('#aeDay'), aeSave=$('#aeSave'), aeCancel=$('#aeCancel');
   var adminSection=$('#admin'), staffRows=$('#staffRows');
@@ -667,7 +667,7 @@
 
     var rows = Array.from(perDay.values()).map(function(v){
       var nm=(nameByUid.get(v.uid)&&nameByUid.get(v.uid).full) || (nameByUid.get(v.uid)&&nameByUid.get(v.uid).username) || v.uid.slice(0,6);
-      return { uid:v.uid, name:nm, date:v.date, dateLabel: mdy(v.date), in:v.firstIn?hmNoLead(v.firstIn):'', out:v.lastOut?hmNoLead(v.lastOut):'', mins:v.mins };
+      return { uid:v.uid, name:nm, date:v.date, in:v.firstIn?hmNoLead(v.firstIn):'', out:v.lastOut?hmNoLead(v.lastOut):'', mins:v.mins };
     }).sort(function(a,b){ var c=a.name.localeCompare(b.name); return c|| (a.date - b.date); });
     return rows;
   }
@@ -686,26 +686,67 @@
     if(s.empty){ reportRows.innerHTML=''; reportRange.textContent='No saved report yet. Click "Generate Now".'; return; }
     await renderReportDoc(s.docs[0]);
   }
+
+  /* >>> FIXED RENDERER <<< */
   async function renderReportDoc(docu){
-    var data=docu.data(); var start=data.start&&data.start.toDate?data.start.toDate():new Date(data.start); var end=data.end&&data.end.toDate?data.end.toDate():new Date(data.end);
-    var gen = (data.generatedAt&&data.generatedAt.toDate)?data.generatedAt.toDate():new Date();
+    var data = docu.data();
+    var start = (data.start && data.start.toDate) ? data.start.toDate() : new Date(data.start);
+    var end   = (data.end   && data.end.toDate)   ? data.end.toDate()   : new Date(data.end);
+    var gen   = (data.generatedAt && data.generatedAt.toDate) ? data.generatedAt.toDate() : new Date();
+
     reportRange.textContent = 'Period: ' + mdy(start) + ' – ' + mdy(end) + ' (generated ' + gen.toLocaleString() + ')';
-    var rows=(data.rows||[]).slice().sort(function(a,b){ var c=a.name.localeCompare(b.name); return c || (new Date(a.date) - new Date(b.date)); });
+
+    // normalize rows and sort
+    var rows = (data.rows || []).map(function(r){
+      var d = (r.date && r.date.toDate) ? r.date.toDate() : (typeof r.date === 'string' ? new Date(r.date) : new Date(r.date));
+      return { name:r.name, date:d, in:r.in||'', out:r.out||'', mins:r.mins||0 };
+    }).filter(function(r){ return !isNaN(r.date.getTime()); })
+      .sort(function(a,b){ var c=a.name.localeCompare(b.name); return c || (a.date - b.date); });
+
     reportRows.innerHTML='';
-    var curName=null, weekStart=null, weekMins=0, periodMins=0;
-    function flushWeek(name){ if(weekStart!==null){ var tr=document.createElement('tr'); tr.innerHTML='<td>'+name+'</td><td><strong>Week total</strong></td><td></td><td></td><td class="right"><strong>'+fmt2(weekMins/60)+'</strong></td>'; reportRows.appendChild(tr); weekStart=null; weekMins=0; } }
-    function flushPeriod(name){ var tr=document.createElement('tr'); tr.innerHTML='<td>'+name+'</td><td><strong>Period total</strong></td><td></td><td></td><td class="right"><strong>'+fmt2(periodMins/60)+'</strong></td>'; reportRows.appendChild(tr); periodMins=0; }
+
+    var curName=null, weekKey=null, weekMins=0, periodMins=0, weekIdx=0;
+
+    function mondayKey(d){
+      var dow=d.getDay();
+      var m=new Date(d); m.setHours(0,0,0,0);
+      m.setDate(d.getDate() - (dow===0 ? 6 : (dow-1)));
+      return m.toISOString().slice(0,10);
+    }
+    function ordinal(n){ if(n===1) return '1st'; if(n===2) return '2nd'; if(n===3) return '3rd'; return n+'th'; }
+    function flushWeekTotal(){
+      if(weekKey===null) return;
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+curName+'</td><td><strong>'+ordinal(weekIdx)+' Week Total</strong></td><td></td><td></td><td class="right"><strong>'+fmt2(weekMins/60)+'</strong></td>';
+      reportRows.appendChild(tr);
+      weekKey=null; weekMins=0;
+    }
+    function flushPeriodTotal(){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+curName+'</td><td><strong>PERIOD TOTAL</strong></td><td></td><td></td><td class="right"><strong>'+fmt2(periodMins/60)+'</strong></td>';
+      reportRows.appendChild(tr);
+      periodMins=0; weekIdx=0;
+    }
+
     rows.forEach(function(r){
-      var d=new Date(r.date); var dow=d.getDay(); var weekMon=new Date(d); weekMon.setDate(d.getDate() - (dow===0?6:dow-1)); weekMon.setHours(0,0,0,0);
-      if(r.name!==curName){ if(curName){ flushWeek(curName); flushPeriod(curName); var sep=document.createElement('tr'); sep.innerHTML='<td colspan="5" class="hint">—</td>'; reportRows.appendChild(sep); }
-        curName=r.name; weekStart=+weekMon; weekMins=0; periodMins=0;
+      if(r.name !== curName){
+        if(curName){ flushWeekTotal(); flushPeriodTotal(); var sep=document.createElement('tr'); sep.innerHTML='<td colspan="5" class="hint">—</td>'; reportRows.appendChild(sep); }
+        curName=r.name; periodMins=0; weekIdx=0; weekKey=null;
       }
-      if(+weekMon!==weekStart){ flushWeek(curName); weekStart=+weekMon; }
+
+      var wk = mondayKey(r.date);
+      if(weekKey===null){ weekKey=wk; weekIdx+=1; }
+      if(wk!==weekKey){ flushWeekTotal(); weekKey=wk; weekIdx+=1; }
+
       weekMins += r.mins; periodMins += r.mins;
-      var tr=document.createElement('tr'); tr.innerHTML='<td>'+r.name+'</td><td>'+mdy(d)+'</td><td>'+(r.in||'')+'</td><td>'+(r.out||'')+'</td><td class="right">'+fmt2(r.mins/60)+'</td>'; reportRows.appendChild(tr);
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+r.name+'</td><td>'+mdy(r.date)+'</td><td>'+r.in+'</td><td>'+r.out+'</td><td class="right">'+fmt2(r.mins/60)+'</td>';
+      reportRows.appendChild(tr);
     });
-    if(curName){ flushWeek(curName); flushPeriod(curName); }
+
+    if(curName){ flushWeekTotal(); flushPeriodTotal(); }
   }
+
   async function loadAllReports(){
     var s=await getDocs(query(collection(db,'reports'), orderBy('end','desc')));
     reportList.innerHTML=''; s.forEach(function(d){
