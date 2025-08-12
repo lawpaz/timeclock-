@@ -33,6 +33,7 @@
   .badge{ font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #2a364a; color:#9aa6bf; }
   .nametabs { display:flex; gap:6px; overflow:auto; padding-bottom:4px; }
   .nametabs button { white-space:nowrap; }
+  .period-nav { display:flex; gap:8px; align-items:center; }
 </style>
 </head>
 <body>
@@ -112,8 +113,10 @@
         </div>
         <div class="hint">Clocking is allowed from approved desktop/laptop only.</div>
       </div>
-      <div class="grow right">
+      <div class="period-nav">
+        <button id="btnPrevPeriod" class="btn-ghost">◀</button>
         <span id="periodLbl" class="pill">Period: —</span>
+        <button id="btnNextPeriod" class="btn-ghost">▶</button>
       </div>
     </div>
 
@@ -128,13 +131,47 @@
     <div id="msg" class="hint"></div>
   </section>
 
+  <!-- Add Entry (admin) -->
+  <section id="addEntryCard" class="card hidden">
+    <h3 style="margin:0 0 8px; font-size:16px;">Add Entry</h3>
+    <div class="row" style="gap:8px;">
+      <div class="grow">
+        <label>User</label>
+        <select id="aeUser"></select>
+      </div>
+      <div>
+        <label>Date</label>
+        <input id="aeDate" type="date" />
+      </div>
+      <div>
+        <label>Clock In</label>
+        <input id="aeIn" type="time" step="60" value="09:00" />
+      </div>
+      <div>
+        <label>Clock Out</label>
+        <input id="aeOut" type="time" step="60" value="17:00" />
+      </div>
+      <div>
+        <label>Day Type</label>
+        <select id="aeDay">
+          <option>Work Day</option>
+          <option>Holiday</option>
+          <option>Sick</option>
+          <option>PTO</option>
+        </select>
+      </div>
+      <div><label>&nbsp;</label><button id="aeSave" class="btn-primary">Save</button></div>
+      <div><label>&nbsp;</label><button id="aeCancel" class="btn-ghost">Cancel</button></div>
+    </div>
+  </section>
+
   <!-- Entries -->
   <section class="card">
     <div class="row" style="justify-content:space-between; margin-bottom:8px;">
       <h3 style="margin:0; font-size:16px;">Entries (current period)</h3>
       <div class="row">
         <div id="nameTabs" class="nametabs hidden"></div>
-        <button id="btnAddEntry" class="btn-ghost hidden">Add Entry</button>
+        <button id="btnShowAddEntry" class="btn-ghost hidden">Add Entry</button>
       </div>
     </div>
     <table>
@@ -167,7 +204,7 @@
       </table>
     </div>
 
-    <!-- Reports -->
+    <!-- Reports (no “View” button) -->
     <div id="admin-reports" class="hidden">
       <div class="row" style="gap:10px; margin-bottom:10px;">
         <button id="btnGenerateNow" class="btn-primary">Generate Now (biweekly Mon–Sat)</button>
@@ -219,9 +256,9 @@
   const pad2 = n => String(n).padStart(2,'0');
   const fmtHM = mins => `${Math.floor(mins/60)}h ${pad2(Math.round(mins%60))}m`;
   const fmt2 = n => (Math.round(n*100)/100).toFixed(2);
-  const onlyHM = d => pad2(d.getHours())+':'+pad2(d.getMinutes()); // 24h HH:MM
+  const onlyHM = d => String(d.getHours())+':'+pad2(d.getMinutes()); // 9:05 -> "9:05"
   const dateKey = d => d.toISOString().slice(0,10);
-  const niceDate = d => d.toLocaleDateString(undefined,{ weekday:'long', month:'long', day:'numeric' });
+  const mdy = d => d.toLocaleDateString(undefined,{ month:'short', day:'numeric', year:'numeric' }); // Aug 11, 2025
   const show = (el, v=true) => el.classList.toggle('hidden', !v);
   const fullNameOf = u => [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
   const todayISO = () => new Date().toISOString().slice(0,10);
@@ -263,16 +300,17 @@
   const suFirst=$('#suFirst'), suLast=$('#suLast'), suUsername=$('#suUsername'), suEmail=$('#suEmail'), suPass=$('#suPass'), suMsg=$('#suMsg');
   const btnSignIn=$('#btnSignIn'), btnReset=$('#btnReset'), btnSignUp=$('#btnSignUp');
   const btnSignOut=$('#btnSignOut'), btnExport=$('#btnExport');
-  const welcome=$('#welcome'), roleBadge=$('#roleBadge'), activeBadge=$('#activeBadge');
+  const welcome=$('#welcome'), roleBadge=$('#roleBadge'), activeBadge=$('#activeBadge']);
   const statusEl=$('#status'), sinceEl=$('#since'), todayTotalEl=$('#todayTotal');
   const btnIn=$('#btnIn'), btnOut=$('#btnOut');
-  const periodLbl=$('#periodLbl');
-  const entryRows=$('#entryRows'); const btnAddEntry=$('#btnAddEntry'); const nameTabs = $('#nameTabs');
+  const periodLbl=$('#periodLbl'), btnPrevPeriod=$('#btnPrevPeriod'), btnNextPeriod=$('#btnNextPeriod');
+  const entryRows=$('#entryRows'); const nameTabs = $('#nameTabs'); const btnShowAddEntry=$('#btnShowAddEntry');
+  const addEntryCard=$('#addEntryCard'), aeUser=$('#aeUser'), aeDate=$('#aeDate'), aeIn=$('#aeIn'), aeOut=$('#aeOut'), aeDay=$('#aeDay'), aeSave=$('#aeSave'), aeCancel=$('#aeCancel');
   const adminSection=$('#admin'), staffRows=$('#staffRows');
   const reportRows=$('#reportRows'), reportRange=$('#reportRange'), btnLoadLatest=$('#btnLoadLatest'), btnGenerateNow=$('#btnGenerateNow'), btnExportTotals=$('#btnExportTotals'), reportList=$('#reportList');
 
   // State
-  let state = { user:null, isAdmin:false, me:null, users:new Map(), currentStatus:'out', filterUid:null, period:null, liveUnsub:null };
+  let state = { user:null, isAdmin:false, me:null, users:new Map(), currentStatus:'out', filterUid:null, period:null, periodOffset:0, liveUnsub:null, earliestPunch:null };
 
   function validUsername(u){ return /^[a-z0-9_]{3,20}$/.test(u||''); }
   async function resolveLoginIdentifier(idOrUsername){
@@ -285,8 +323,8 @@
   }
 
   // Sign-in/up
-  btnSignIn.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await signInWithEmailAndPassword(auth,email,siPass.value);}catch(e){ siMsg.textContent='Sign-in failed: '+e.message; }});
-  btnReset.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await sendPasswordResetEmail(auth,email); siMsg.textContent='Reset email sent if the account exists.';}catch(e){ siMsg.textContent='Password reset failed: '+e.message; }});
+  btnSignIn.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await signInWithEmailAndPassword(auth,email,siPass.value);}catch(e){ siMsg.textContent='Sign-in failed: '+e.message; alert('Sign-in failed: '+e.message);} });
+  btnReset.addEventListener('click', async ()=>{ siMsg.textContent=''; try{ const email=await resolveLoginIdentifier(siEmail.value); await sendPasswordResetEmail(auth,email); siMsg.textContent='Reset email sent if the account exists.';}catch(e){ siMsg.textContent='Password reset failed: '+e.message; alert('Password reset failed: '+e.message);} });
   btnSignUp.addEventListener('click', async ()=>{ suMsg.textContent=''; try{
     const firstName=suFirst.value.trim(), lastName=suLast.value.trim(); if(!firstName||!lastName) throw new Error('Enter first and last name.');
     const username=suUsername.value.trim().toLowerCase(); if(!validUsername(username)) throw new Error('Username must be 3–20 letters/numbers/_');
@@ -296,7 +334,7 @@
     await setDoc(doc(db,'users',cred.user.uid),{ username,email,firstName,lastName,role:'staff',active:false,createdAt:serverTimestamp() });
     await setDoc(doc(db,'usernames',username),{ uid:cred.user.uid, email });
     suMsg.textContent='Account created. Admin must activate your account.';
-  }catch(e){ suMsg.textContent='Sign-up failed: '+e.message; }});
+  }catch(e){ suMsg.textContent='Sign-up failed: '+e.message; alert('Sign-up failed: '+e.message); }});
   btnSignOut.addEventListener('click', async ()=>{ await signOut(auth); });
 
   // Roles
@@ -307,25 +345,23 @@
     const data=(await getDoc(ref)).data(); state.users.set(user.uid,data); return data;
   }
 
-  function currentPeriod(){
-    const now=new Date(); const dow=now.getDay(); // 0 Sun .. 6 Sat
-    const start=new Date(now);
-    if(dow===0) start.setDate(start.getDate()+1); else start.setDate(start.getDate()-(dow-1)); // Monday
-    start.setHours(0,0,0,0);
-    const end=new Date(start); end.setDate(start.getDate()+5); end.setHours(23,59,59,999); // Saturday
-    return {start,end};
-  }
-  function previousPeriodEnd(){
-    // last Saturday end
-    const now=new Date(); const dow=now.getDay(); const daysSinceSat=(dow-6+7)%7;
-    const end=new Date(now); end.setDate(end.getDate()-daysSinceSat); end.setHours(23,59,59,999);
-    return end;
-  }
-  function previousPeriodRange(){
-    const end=previousPeriodEnd(); const start=new Date(end); start.setDate(start.getDate()-12); start.setHours(0,0,0,0); return {start,end};
+  // ===== Biweekly period helpers (Mon–Sat x2) with navigation =====
+  function lastSaturdayEnd(d=new Date()){ const dow=d.getDay(); const days=(dow-6+7)%7; const x=new Date(d); x.setDate(x.getDate()-days); x.setHours(23,59,59,999); return x; }
+  function startFromEndSat(end){ const x=new Date(end); x.setDate(x.getDate()-12); x.setHours(0,0,0,0); return x; }
+  function periodByOffset(offset){ const end0=lastSaturdayEnd(new Date()); const end=new Date(end0); end.setDate(end.getDate()+offset*14); const start=startFromEndSat(end); return {start,end}; }
+  async function earliestPunchDate(){ if(state.earliestPunch) return state.earliestPunch; const s=await getDocs(query(collection(db,'punches'), orderBy('ts','asc'), limit(1))); state.earliestPunch = s.empty? null : s.docs[0].data().ts.toDate(); return state.earliestPunch; }
+  async function updatePeriodNav(){
+    btnNextPeriod.disabled = state.periodOffset >= 0;
+    const ep = await earliestPunchDate(); if(!ep){ btnPrevPeriod.disabled = true; return; }
+    const earliestStart = startFromEndSat(lastSaturdayEnd(ep));
+    btnPrevPeriod.disabled = state.period.start <= earliestStart;
   }
 
-  function renderAuth(signed){ show($('#auth'),!signed); show($('#app'),!!signed); show(btnSignOut,!!signed); show(btnExport,!!signed); }
+  function renderAuth(signed){
+    show($('#auth'),!signed); show($('#app'),!!signed); show(btnSignOut,!!signed);
+    // Export CSV is admin-only
+    show(btnExport, signed && state.isAdmin);
+  }
 
   onAuthStateChanged(auth, async (user)=>{
     state.user=user||null; if(!user){ if(state.liveUnsub) state.liveUnsub(); renderAuth(false); return; }
@@ -336,13 +372,20 @@
     show(adminSection, state.isAdmin);
     renderAuth(true);
 
-    state.period=currentPeriod();
-    periodLbl.textContent = `Period: ${state.period.start.toDateString()} – ${state.period.end.toDateString()}`;
+    // Admin-only UI bits
+    show(nameTabs, state.isAdmin);
+    show(btnShowAddEntry, state.isAdmin);
+    show(addEntryCard, false);
+
+    // Start at current biweekly; wire arrows
+    state.periodOffset = 0;
+    state.period = periodByOffset(0);
+    periodLbl.textContent = `Period: ${mdy(state.period.start)} – ${mdy(state.period.end)}`;
+    await updatePeriodNav();
 
     state.filterUid = state.isAdmin ? null : user.uid; // staff see only theirs
-    wireNameTabs(); // admin only
+    if (state.isAdmin) { wireNameTabs(); loadStaff(); loadUsersForAddEntry(); }
     subscribeEntries();
-    if (state.isAdmin) loadStaff();
     recomputeStatus();
   });
 
@@ -376,25 +419,36 @@
       });
       msg.textContent='Recorded ✓';
       await recomputeStatus();
-    }catch(e){ msg.textContent='Error: '+e.message; }
+    }catch(e){ msg.textContent='Error: '+e.message; alert('Punch failed: '+e.message); }
   }
   $('#btnIn').addEventListener('click', ()=>doPunch('in'));
   $('#btnOut').addEventListener('click', ()=>doPunch('out'));
 
-  // ===== Entries (period view, per-user/day rows) =====
+  // ===== Entries (biweekly period) =====
   function wireNameTabs(){
-    if(!state.isAdmin){ show(nameTabs,false); show(btnAddEntry,false); return; }
-    show(nameTabs,true); show(btnAddEntry,true);
     nameTabs.innerHTML='';
     const add = (id,label)=>{ const b=document.createElement('button'); b.className='tab'+(state.filterUid===id?' active':''); b.textContent=label; b.addEventListener('click',()=>{ state.filterUid=id; wireNameTabs(); buildEntries(); }); nameTabs.appendChild(b); };
     add(null,'All');
-    // build from users collection (active or all)
     getDocs(collection(db,'users')).then(s=>{
       const arr=[]; s.forEach(d=>arr.push({id:d.id, ...d.data()}));
       arr.sort((a,b)=>(fullNameOf(a)||a.username||'').localeCompare(fullNameOf(b)||b.username||''));
       arr.forEach(u=> add(u.id, fullNameOf(u)||u.username||u.email));
     });
   }
+
+  btnPrevPeriod.addEventListener('click', async ()=>{
+    state.periodOffset -= 1;
+    state.period = periodByOffset(state.periodOffset);
+    periodLbl.textContent = `Period: ${mdy(state.period.start)} – ${mdy(state.period.end)}`;
+    await updatePeriodNav(); buildEntries();
+  });
+  btnNextPeriod.addEventListener('click', async ()=>{
+    if(state.periodOffset>=0) return;
+    state.periodOffset += 1;
+    state.period = periodByOffset(state.periodOffset);
+    periodLbl.textContent = `Period: ${mdy(state.period.start)} – ${mdy(state.period.end)}`;
+    await updatePeriodNav(); buildEntries();
+  });
 
   function subscribeEntries(){
     if(state.liveUnsub) state.liveUnsub();
@@ -412,7 +466,7 @@
     us.forEach(d=>userMap.set(d.id,{username:d.data().username||'', full: fullNameOf(d.data())||''}));
 
     // group per uid/date
-    const byDay = new Map(); // key: uid|dateKey -> {uid,dateKey, firstIn, lastOut, totalMins, dayType, docs:[{id,type,ts}]}
+    const byDay = new Map();
     const lastInPerUid = new Map();
 
     snaps.forEach(docu=>{
@@ -452,86 +506,86 @@
       const tr=document.createElement('tr');
       tr.innerHTML = `
         <td>${nm}</td>
-        <td data-k="date" data-key="${r.uid}|${r.dateKey}" contenteditable="${state.isAdmin}">${d.toISOString().slice(0,10)}</td>
-        <td data-k="in" data-key="${r.uid}|${r.dateKey}" contenteditable="${state.isAdmin}">${r.firstIn?onlyHM(r.firstIn):''}</td>
-        <td data-k="out" data-key="${r.uid}|${r.dateKey}" contenteditable="${state.isAdmin}">${r.lastOut?onlyHM(r.lastOut):''}</td>
-        <td data-k="daytype" data-key="${r.uid}|${r.dateKey}" contenteditable="${state.isAdmin}">${r.dayType||'Work Day'}</td>
+        <td>${mdy(d)}</td>
+        <td ${state.isAdmin?`data-k="in" data-key="${r.uid}|${r.dateKey}" contenteditable="true"`:''}>${r.firstIn?onlyHM(r.firstIn):''}</td>
+        <td ${state.isAdmin?`data-k="out" data-key="${r.uid}|${r.dateKey}" contenteditable="true"`:''}>${r.lastOut?onlyHM(r.lastOut):''}</td>
+        <td ${state.isAdmin?`data-k="daytype" data-key="${r.uid}|${r.dateKey}" contenteditable="true"`:''}>${r.dayType||'Work Day'}</td>
         <td class="right">${state.isAdmin?'<button class="btn-danger" data-del="'+r.uid+'|'+r.dateKey+'" style="height:32px;">Delete Day</button>':''}</td>
       `;
       tr.dataset.docs = JSON.stringify(r.docs.map(x=>({id:x.id,type:x.type,ts:x.ts})));
       entryRows.appendChild(tr);
     });
 
+    // Totals for a single user (staff view, or admin filtered to one user)
+    const singleUser = !state.isAdmin || !!state.filterUid;
+    if(singleUser){
+      let minsWeek1=0, minsWeek2=0;
+      const w1End=new Date(start); w1End.setDate(start.getDate()+5); w1End.setHours(23,59,59,999);
+      rows.forEach(r=>{ const m=r.totalMins||0; const d=new Date(r.dateKey+'T00:00:00'); if(d<=w1End) minsWeek1+=m; else minsWeek2+=m; });
+      const periodMins = minsWeek1+minsWeek2;
+      const addRow=(label,hrs)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><strong>${label}</strong></td><td></td><td></td><td></td><td class="right"><strong>${fmt2(hrs/60)}</strong></td><td></td>`; entryRows.appendChild(tr); };
+      addRow('Week Total (Mon–Sat, week 1)', minsWeek1);
+      addRow('Week Total (Mon–Sat, week 2)', minsWeek2);
+      addRow('Period Total', periodMins);
+    }
+
+    // Editing (admin only)
     if(state.isAdmin){
-      // edits
-      entryRows.querySelectorAll('[data-k]').forEach(cell=>{
+      entryRows.querySelectorAll('[data-k="in"],[data-k="out"]').forEach(cell=>{
         cell.addEventListener('keydown', async (e)=>{
           if(e.key!=='Enter') return; e.preventDefault(); cell.blur();
-          const kind=cell.getAttribute('data-k'); const key=cell.getAttribute('data-key');
-          const tr=cell.closest('tr'); const docs=JSON.parse(tr.dataset.docs); // [{id,type,ts}]
-          try{
-            if(kind==='date'){
-              const val=cell.textContent.trim(); // YYYY-MM-DD
-              const m=/^\d{4}-\d{2}-\d{2}$/.test(val); if(!m) throw new Error('Use YYYY-MM-DD');
-              // move ALL docs for this day to the new date (keep times)
-              for(const d of docs){
-                const t=new Date(val+'T'+onlyHM(new Date(d.ts)));
-                await updateDoc(doc(db,'punches', d.id), { ts: Timestamp.fromDate(t) });
-              }
-              msg.textContent='Date updated ✓';
-            } else if(kind==='in' || kind==='out'){
-              const val=cell.textContent.trim(); // HH:MM
-              if(!/^\d{2}:\d{2}$/.test(val)) throw new Error('Use HH:MM (24h)');
-              // find first IN or last OUT
-              let target = null, baseDate=null;
-              if(kind==='in'){
-                let min=1e15; docs.forEach(d=>{ if(d.type==='in' && d.ts<min){ min=d.ts; target=d; }});
-                baseDate = new Date(docs.find(d=>d.type).ts);
-              }else{
-                let max=0; docs.forEach(d=>{ if(d.type==='out' && d.ts>max){ max=d.ts; target=d; }});
-                baseDate = new Date(docs.find(d=>d.type).ts);
-              }
-              if(!target) throw new Error('No '+kind.toUpperCase()+' punch to edit.');
-              const dateStr = dateKey(new Date(target.ts));
-              const t=new Date(dateStr+'T'+val);
-              await updateDoc(doc(db,'punches', target.id), { ts: Timestamp.fromDate(t) });
-              msg.textContent=(kind==='in'?'Clock in':'Clock out')+' updated ✓';
-            } else if(kind==='daytype'){
-              const val=cell.textContent.trim() || 'Work Day';
-              for(const d of docs){ await updateDoc(doc(db,'punches', d.id), { dayType: val }); }
-              msg.textContent='Day type updated ✓';
-            }
-          }catch(err){ alert(err.message); }
+          const kind=cell.getAttribute('data-k'); const tr=cell.closest('tr'); const docs=JSON.parse(tr.dataset.docs);
+          const val=cell.textContent.trim(); if(!/^\d{1,2}:\d{2}$/.test(val)) return alert('Use H:MM (24h)');
+          let target=null;
+          if(kind==='in'){ let min=1e15; for(const d of docs){ if(d.type==='in' && d.ts<min){ min=d.ts; target=d; } } }
+          else { let max=0; for(const d of docs){ if(d.type==='out' && d.ts>max){ max=d.ts; target=d; } } }
+          if(!target) return alert('No '+(kind==='in'?'IN':'OUT')+' punch to edit.');
+          const base=new Date(target.ts); const [h,m]=val.split(':').map(Number); const t=new Date(dateKey(base)+'T'+pad2(h)+':'+pad2(m)+':00');
+          await updateDoc(doc(db,'punches', target.id), { ts: Timestamp.fromDate(t) });
+          msg.textContent=(kind==='in'?'Clock in':'Clock out')+' updated ✓';
         });
       });
-
-      // delete a whole day
+      entryRows.querySelectorAll('[data-k="daytype"]').forEach(cell=>{
+        cell.addEventListener('keydown', async (e)=>{
+          if(e.key!=='Enter') return; e.preventDefault(); cell.blur();
+          const val=cell.textContent.trim()||'Work Day'; const tr=cell.closest('tr'); const docs=JSON.parse(tr.dataset.docs);
+          for(const d of docs){ await updateDoc(doc(db,'punches', d.id), { dayType: val }); }
+          msg.textContent='Day type updated ✓';
+        });
+      });
       entryRows.querySelectorAll('[data-del]').forEach(btn=>{
         btn.addEventListener('click', async ()=>{
           if(!confirm('Delete ALL punches for this day?')) return;
-          const key=btn.getAttribute('data-del'); const row=btn.closest('tr'); const docs=JSON.parse(row.dataset.docs);
+          const row=btn.closest('tr'); const docs=JSON.parse(row.dataset.docs);
           for(const d of docs){ await deleteDoc(doc(db,'punches', d.id)); }
         });
       });
     }
   }
 
-  // Add Entry (admin)
-  btnAddEntry.addEventListener('click', async ()=>{
+  // ===== Add Entry form (admin) =====
+  function loadUsersForAddEntry(){
+    aeUser.innerHTML='';
+    getDocs(collection(db,'users')).then(s=>{
+      const arr=[]; s.forEach(d=>arr.push({id:d.id, ...d.data()}));
+      arr.sort((a,b)=>(fullNameOf(a)||a.username||'').localeCompare(fullNameOf(b)||b.username||''));
+      arr.forEach(u=>{ const op=document.createElement('option'); op.value=u.id; op.textContent=fullNameOf(u)||u.username||u.email; aeUser.appendChild(op); });
+    });
+    aeDate.value = todayISO();
+  }
+  btnShowAddEntry.addEventListener('click', ()=> show(addEntryCard, true));
+  aeCancel.addEventListener('click', ()=> show(addEntryCard, false));
+  aeSave.addEventListener('click', async ()=>{
     if(!state.isAdmin) return;
-    const who = prompt('Username or email for the entry:'); if(!who) return;
-    let u=null;
-    if(who.includes('@')){ const qs=await getDocs(query(collection(db,'users'), where('email','==', who.toLowerCase()))); if(!qs.empty) u={ id:qs.docs[0].id, ...qs.docs[0].data() }; }
-    else { const qs=await getDocs(query(collection(db,'users'), where('username','==', who.toLowerCase()))); if(!qs.empty) u={ id:qs.docs[0].id, ...qs.docs[0].data() }; }
-    if(!u){ alert('User not found.'); return; }
-    const d = prompt('Date (YYYY-MM-DD):', todayISO()); if(!/^\d{4}-\d{2}-\d{2}$/.test(d||'')) return alert('Invalid date');
-    const cin = prompt('Clock in (HH:MM 24h):', '09:00'); if(!/^\d{2}:\d{2}$/.test(cin||'')) return alert('Invalid time');
-    const cout= prompt('Clock out (HH:MM 24h):', '17:00'); if(!/^\d{2}:\d{2}$/.test(cout||'')) return alert('Invalid time');
-    const dayType = prompt('Day type (e.g., Work Day, Holiday):', 'Work Day') || 'Work Day';
-    const tIn = new Date(d+'T'+cin+':00'); const tOut = new Date(d+'T'+cout+':00'); if(tOut<=tIn) return alert('Out must be after In');
-    await addDoc(collection(db,'punches'), { uid:u.id, username:u.username||u.email, fullName: fullNameOf(u)||'', type:'in',  ts: Timestamp.fromDate(tIn),  dayType, source:'manual' });
-    await addDoc(collection(db,'punches'), { uid:u.id, username:u.username||u.email, fullName: fullNameOf(u)||'', type:'out', ts: Timestamp.fromDate(tOut), dayType, source:'manual' });
-    alert('Entry added.');
+    const uid=aeUser.value; if(!uid) return alert('Pick a user');
+    const s=await getDoc(doc(db,'users', uid)); if(!s.exists()) return alert('User not found');
+    const u=s.data(); const d=aeDate.value; const tIn=aeIn.value; const tOut=aeOut.value; const day=aeDay.value;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return alert('Date required');
+    if(!/^\d{2}:\d{2}$/.test(tIn)||!/^\d{2}:\d{2}$/.test(tOut)) return alert('Times must be HH:MM');
+    const inDt=new Date(d+'T'+tIn+':00'); const outDt=new Date(d+'T'+tOut+':00'); if(outDt<=inDt) return alert('Out must be after In');
+    await addDoc(collection(db,'punches'), { uid, username:u.username||u.email, fullName:fullNameOf(u)||'', type:'in',  ts:Timestamp.fromDate(inDt),  dayType:day, source:'manual' });
+    await addDoc(collection(db,'punches'), { uid, username:u.username||u.email, fullName:fullNameOf(u)||'', type:'out', ts:Timestamp.fromDate(outDt), dayType:day, source:'manual' });
+    alert('Entry added'); show(addEntryCard,false);
   });
 
   // ===== Staff list (admin) =====
@@ -561,7 +615,7 @@
         const id=b.getAttribute('data-edit'); const s=await getDoc(doc(db,'users', id)); if(!s.exists()) return; const u=s.data();
         const first=prompt('First name:', u.firstName||''); if(first===null) return;
         const last =prompt('Last name:',  u.lastName||''); if(last===null) return;
-        let uname=prompt('Username (3–20 letters/numbers/_):', u.username||''); if(uname===null) return; uname=uname.trim().toLowerCase(); if(!validUsername(uname)) return alert('Invalid username');
+        let uname=prompt('Username (3–20 letters/numbers/_):', u.username||''); if(uname===null) return; uname=uname.trim().toLowerCase(); if(!/^[a-z0-9_]{3,20}$/.test(uname)) return alert('Invalid username');
         if(uname !== (u.username||'')){
           const exists=await getDoc(doc(db,'usernames', uname)); if(exists.exists()) return alert('Username is taken.');
           const old=u.username?.toLowerCase(); if(old){ const oldDoc=await getDoc(doc(db,'usernames', old)); if(oldDoc.exists() && oldDoc.data().uid===id){ await deleteDoc(doc(db,'usernames', old)); } }
@@ -569,21 +623,18 @@
         }
         await updateDoc(doc(db,'users', id), { firstName:first, lastName:last, username:uname });
         alert('Updated.');
-        wireNameTabs(); // refresh the tabs list
+        wireNameTabs();
       }));
     });
   }
 
-  // ===== Reports (biweekly Mon–Sat) with daily rows + totals =====
-  function lastSaturdayEnd(d=new Date()){ const dow=d.getDay(); const days=(dow-6+7)%7; const x=new Date(d); x.setDate(x.getDate()-days); x.setHours(23,59,59,999); return x; }
-  function periodStartFromEndSat(endSat){ const x=new Date(endSat); x.setDate(x.getDate()-12); x.setHours(0,0,0,0); return x; }
-
+  // ===== Reports (biweekly Mon–Sat) =====
   async function computeDailyRows(start,end){
     const usersSnap = await getDocs(collection(db,'users'));
     const nameByUid = new Map(); usersSnap.forEach(u=>nameByUid.set(u.id,{full: fullNameOf(u.data())||'', username:u.data().username||''}));
 
     const snaps = await getDocs(query(collection(db,'punches'), orderBy('ts','asc')));
-    const perDay = new Map(); const lastIn = new Map(); // uid|date -> last in time
+    const perDay = new Map(); const lastIn = new Map();
     snaps.forEach(d=>{
       const x=d.data(); if(!x.ts?.toDate) return; const t=x.ts.toDate();
       if(t<start || t>end) return;
@@ -596,18 +647,22 @@
 
     const rows = Array.from(perDay.values()).map(v=>{
       const nm=nameByUid.get(v.uid)?.full || nameByUid.get(v.uid)?.username || v.uid.slice(0,6);
-      return { uid:v.uid, name:nm, date:v.date, dateLabel:niceDate(v.date), in:v.firstIn?onlyHM(v.firstIn):'', out:v.lastOut?onlyHM(v.lastOut):'', mins:v.mins };
+      return { uid:v.uid, name:nm, date:v.date, dateLabel: mdy(v.date), in:v.firstIn?onlyHM(v.firstIn):'', out:v.lastOut?onlyHM(v.lastOut):'', mins:v.mins };
     }).sort((a,b)=> a.name.localeCompare(b.name) || a.date - b.date);
     return rows;
   }
 
+  function lastSaturdayEnd(d=new Date()){ const dow=d.getDay(); const days=(dow-6+7)%7; const x=new Date(d); x.setDate(x.getDate()-days); x.setHours(23,59,59,999); return x; }
+  function startFromEndSat(end){ const x=new Date(end); x.setDate(x.getDate()-12); x.setHours(0,0,0,0); return x; }
+
   async function generateAndSaveCurrentBiweekly(){
     const end = lastSaturdayEnd(new Date());
-    const start = periodStartFromEndSat(end);
+    const start = startFromEndSat(end);
     const rows = await computeDailyRows(start,end);
     await addDoc(collection(db,'reports'), { start: Timestamp.fromDate(start), end: Timestamp.fromDate(end), rows, generatedAt: serverTimestamp() });
     await loadLatestReport(); await loadAllReports();
   }
+  btnGenerateNow.addEventListener('click', generateAndSaveCurrentBiweekly);
 
   async function loadLatestReport(){
     const s = await getDocs(query(collection(db,'reports'), orderBy('end','desc'), limit(1)));
@@ -616,21 +671,20 @@
   }
   async function renderReportDoc(docu){
     const data=docu.data(); const start=data.start.toDate?data.start.toDate():new Date(data.start); const end=data.end.toDate?data.end.toDate():new Date(data.end);
-    reportRange.textContent = `Period: ${start.toDateString()} – ${end.toDateString()} (generated ${(data.generatedAt?.toDate?.()||new Date()).toLocaleString()})`;
+    reportRange.textContent = `Period: ${mdy(start)} – ${mdy(end)} (generated ${(data.generatedAt?.toDate?.()||new Date()).toLocaleString()})`;
     const rows=(data.rows||[]).slice().sort((a,b)=> a.name.localeCompare(b.name) || new Date(a.date) - new Date(b.date));
     reportRows.innerHTML='';
-    // render rows + weekly totals + period totals per employee
     let curName=null, weekStart=null, weekMins=0, periodMins=0;
     function flushWeek(name){ if(weekStart!==null){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Week total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(weekMins/60)}</strong></td>`; reportRows.appendChild(tr); weekStart=null; weekMins=0; } }
     function flushPeriod(name){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${name}</td><td><strong>Period total</strong></td><td></td><td></td><td class="right"><strong>${fmt2(periodMins/60)}</strong></td>`; reportRows.appendChild(tr); periodMins=0; }
     rows.forEach(r=>{
-      const d=new Date(r.date); const weekMon=new Date(d); const dow=d.getDay(); weekMon.setDate(d.getDate() - (dow===0?6:dow-1)); weekMon.setHours(0,0,0,0);
+      const d=new Date(r.date); const dow=d.getDay(); const weekMon=new Date(d); weekMon.setDate(d.getDate() - (dow===0?6:dow-1)); weekMon.setHours(0,0,0,0);
       if(r.name!==curName){ if(curName){ flushWeek(curName); flushPeriod(curName); const sep=document.createElement('tr'); sep.innerHTML=`<td colspan="5" class="hint">—</td>`; reportRows.appendChild(sep); }
         curName=r.name; weekStart=+weekMon; weekMins=0; periodMins=0;
       }
       if(+weekMon!==weekStart){ flushWeek(curName); weekStart=+weekMon; }
       weekMins += r.mins; periodMins += r.mins;
-      const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.name}</td><td>${r.dateLabel}</td><td>${r.in||''}</td><td>${r.out||''}</td><td class="right">${fmt2(r.mins/60)}</td>`; reportRows.appendChild(tr);
+      const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.name}</td><td>${mdy(d)}</td><td>${r.in||''}</td><td>${r.out||''}</td><td class="right">${fmt2(r.mins/60)}</td>`; reportRows.appendChild(tr);
     });
     if(curName){ flushWeek(curName); flushPeriod(curName); }
   }
@@ -639,33 +693,27 @@
     reportList.innerHTML=''; s.forEach(d=>{
       const data=d.data(); const st=data.start.toDate?data.start.toDate():new Date(data.start); const en=data.end.toDate?data.end.toDate():new Date(data.end); const gen=data.generatedAt?.toDate?.();
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${st.toDateString()}</td><td>${en.toDateString()}</td><td>${gen?gen.toLocaleString():'—'}</td>
-      <td class="right"><button class="btn-ghost" data-view="${d.id}" style="height:32px;">View</button> <button class="btn-danger" data-delreport="${d.id}" style="height:32px;">Delete</button></td>`;
+      tr.innerHTML=`<td>${mdy(st)}</td><td>${mdy(en)}</td><td>${gen?gen.toLocaleString():'—'}</td>
+      <td class="right"><button class="btn-danger" data-delreport="${d.id}" style="height:32px;">Delete</button></td>`;
       reportList.appendChild(tr);
     });
-    reportList.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click', async ()=>{ const id=b.getAttribute('data-view'); const s=await getDoc(doc(db,'reports', id)); if(s.exists()) await renderReportDoc(s); }));
     reportList.querySelectorAll('[data-delreport]').forEach(b=>b.addEventListener('click', async ()=>{ if(!confirm('Delete this report?')) return; await deleteDoc(doc(db,'reports', b.getAttribute('data-delreport'))); await loadAllReports(); await loadLatestReport(); }));
   }
-  btnGenerateNow.addEventListener('click', generateAndSaveCurrentBiweekly);
   btnLoadLatest.addEventListener('click', loadLatestReport);
 
   // Export CSV (current report view)
   btnExportTotals.addEventListener('click', ()=>{
     const lines=[]; lines.push(['Name','Date','Clock In','Clock Out','Daily Hours'].join(','));
-    let lastName='', weekStart=null, weekMins=0, periodMins=0;
     const trs=[...reportRows.querySelectorAll('tr')];
     trs.forEach(tr=>{
       const t=[...tr.querySelectorAll('td')].map(x=>x.textContent.trim());
       if(t[1]==='Week total' || t[1]==='Period total'){ lines.push(t.join(',')); return; }
-      if(t.length===5){ // normal row
-        lines.push(t.map(v=>`"${v.replace(/"/g,'""')}"`).join(','));
-      }
+      if(t.length===5){ lines.push(t.map(v=>`"${v.replace(/"/g,'""')}"`).join(',')); }
     });
-    // (rows already include totals; no extra work)
     const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='biweekly_detailed.csv'; a.click();
   });
 
-  // Export CSV (Entries view – same columns)
+  // Export CSV (Entries view) — admin only
   btnExport.addEventListener('click', ()=>{
     const headers=['Name','Date','Clock In','Clock Out','Day']; const lines=[headers.join(',')];
     entryRows.querySelectorAll('tr').forEach(tr=>{
