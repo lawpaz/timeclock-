@@ -234,7 +234,7 @@
   import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, addDoc, collection, query, where, onSnapshot, getDocs, serverTimestamp, updateDoc, deleteDoc, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  /* ===== Config ===== */
+  /* ===== Config (your Firebase project) ===== */
   const firebaseConfig = {
     apiKey: "AIzaSyCAi1zcDsdprr78A5RdYiOhz6Xn8Oiz54s",
     authDomain: "timeclock-15ac7.firebaseapp.com",
@@ -687,7 +687,7 @@
     await renderReportDoc(s.docs[0]);
   }
 
-  /* >>> FIXED RENDERER <<< */
+  /* Fixed renderer: proper dates + one Week Total per week + PERIOD TOTAL */
   async function renderReportDoc(docu){
     var data = docu.data();
     var start = (data.start && data.start.toDate) ? data.start.toDate() : new Date(data.start);
@@ -696,7 +696,6 @@
 
     reportRange.textContent = 'Period: ' + mdy(start) + ' – ' + mdy(end) + ' (generated ' + gen.toLocaleString() + ')';
 
-    // normalize rows and sort
     var rows = (data.rows || []).map(function(r){
       var d = (r.date && r.date.toDate) ? r.date.toDate() : (typeof r.date === 'string' ? new Date(r.date) : new Date(r.date));
       return { name:r.name, date:d, in:r.in||'', out:r.out||'', mins:r.mins||0 };
@@ -765,7 +764,6 @@
     var trs=[].slice.call(reportRows.querySelectorAll('tr'));
     trs.forEach(function(tr){
       var t=[].slice.call(tr.querySelectorAll('td')).map(function(x){ return x.textContent.trim(); });
-      if(t[1]==='Week total' || t[1]==='Period total'){ lines.push(t.join(',')); return; }
       if(t.length===5){ lines.push(t.map(function(v){ return '"'+v.replace(/"/g,'""')+'"'; }).join(',')); }
     });
     var blob=new Blob([lines.join('\n')],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='biweekly_detailed.csv'; a.click();
