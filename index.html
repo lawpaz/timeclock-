@@ -102,7 +102,6 @@
 
 <!-- APP -->
 <div id="app" class="container hidden">
-  <!-- Top status -->
   <section class="card">
     <div class="row" style="gap:12px; margin-bottom:10px;">
       <div class="grow">
@@ -196,7 +195,6 @@
       <button class="tab" data-admin-tab="reports">Reports</button>
     </div>
 
-    <!-- Staff -->
     <div id="admin-staff">
       <table>
         <thead><tr><th>First</th><th>Last</th><th>Username</th><th>Email</th><th>Status</th><th class="right">Actions</th></tr></thead>
@@ -204,7 +202,6 @@
       </table>
     </div>
 
-    <!-- Reports -->
     <div id="admin-reports" class="hidden">
       <div class="row" style="gap:10px; margin-bottom:10px;">
         <button id="btnGenerateNow" class="btn-primary">Generate Now (biweekly Mon–Sat)</button>
@@ -228,7 +225,7 @@
 
 <div class="footer">Desktop-only. Data stored in Firebase.</div>
 
-<!-- Load app code (separate file so browsers fetch a fresh copy) -->
-<script type="module" src="./app.v6.js"></script>
+<!-- IMPORTANT: point to the NEW JS file -->
+<script type="module" src="./app.v7.js"></script>
 </body>
 </html>
